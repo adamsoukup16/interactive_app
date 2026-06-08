@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Panel - Interactive App</title>
+    <link rel="stylesheet" href="admin.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <span class="brand-icon">🛡️</span>
+                <div class="brand-text">
+                    <h3>CorePanel</h3>
+                    <span class="status-tag">v2.0 Live</span>
+                </div>
+            </div>
+            
+           <nav class="sidebar-menu">
+                <a href="#" class="menu-item active" data-tab="create-tab">
+                    <span class="icon">➕</span> Nový zápas
+                </a>
+                
+                <div class="menu-group" style="margin-top: 10px;">
+                    <div class="menu-item" id="menu-sub-all" data-tab="events-tab" onclick="window.filterEventsByModule('all')" style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <span class="icon">📁</span> <strong>Moje eventy (Vše)</strong>
+                    </div>
+                    
+                    <div class="menu-sub-items" style="padding-left: 20px; display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+                        <div class="sub-item" id="menu-sub-social" onclick="window.filterEventsByModule('social_watch')" style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; padding: 6px 10px; border-radius: 6px; cursor: pointer; color: #94a3b8;">
+                            <span>📸</span> Social Wall
+                        </div>
+                        <div class="sub-item" id="menu-sub-kviz" onclick="window.filterEventsByModule('kviz')" style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; padding: 6px 10px; border-radius: 6px; cursor: pointer; color: #94a3b8;">
+                            <span>❓</span> Interaktivní Kvíz
+                        </div>
+                        <div class="sub-item" id="menu-sub-pexeso" onclick="window.filterEventsByModule('pexeso')" style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; padding: 6px 10px; border-radius: 6px; cursor: pointer; color: #94a3b8;">
+                            <span>🧩</span> Turnaj v Pexesu
+                        </div>
+                    </div>
+                </div>
+
+                <a href="#" class="menu-item" id="menuModeraion" data-tab="moderation-tab" style="display: none; margin-top: 10px;">
+                    <span class="icon">📸</span> Moderování <span class="badge-count" id="modBadge" style="background:#ef4444; color:#fff; padding:2px 6px; border-radius:10px; font-size:0.7rem; margin-left:auto;">0</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <p>Interactive App © 2026</p>
+            </div>
+        </aside>
+
+        <div class="main-content">
+            <header class="main-header">
+                <div class="header-title">
+                    <h1 id="pageTitle">Nový zápas</h1>
+                    <p id="pageSubtitle">Vytvoření nového interaktivního prostředí pro diváky</p>
+                </div>
+            </header>
+
+            <div class="content-body">
+                
+                <section id="create-tab" class="tab-content active">
+                    <div class="grid-2x1">
+                        <div class="card setup-box">
+                            <h2>Spustit novou akci</h2>
+                            <div class="form-group">
+                                <label for="eventName">Název akce / eventu</label>
+                                <input type="text" id="eventName" placeholder="Např. Svatba Jirky & Alči, Firemní večírek...">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="gameSelect">Aktivní herní modul</label>
+                                <div class="select-wrapper">
+                                    <select id="gameSelect">
+                                        <option value="social_watch">📸 Social Watch (Fotostěna)</option>
+                                        <option value="kviz">❓ Interaktivní Kvíz (příprava)</option>
+                                        <option value="pexeso">🧩 Turnaj v Pexesu (příprava)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button id="btnCreateEvent" class="btn-primary">Spustit a vygenerovat přístupy</button>
+                        </div>
+
+                        <div id="activeEventZone" class="card result-box" style="display: none;">
+                            <h2>🟢 Aktuálně spuštěno</h2>
+                            <div class="event-details">
+                                <p><strong id="activeEventTitle">---</strong></p>
+                                <p><code id="activeEventID"></code></p>
+                            </div>
+                            <div class="qr-wrapper">
+                                <div id="qrcode"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="list-tab" class="tab-content">
+                    <div class="card list-box">
+                        <h2>Historie a správa zápasů</h2>
+                        <div class="table-responsive">
+                            <table class="modern-table">
+                                <thead>
+                                    <tr>
+                                        <th>Název akce</th>
+                                        <th>Modul</th>
+                                        <th>👥 Připojení</th>
+                                        <th>📊 Statistiky fotek</th>
+                                        <th>📱 Přístupy</th>
+                                        <th style="text-align: right;">Akce</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="eventsTableBody">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="moderation-tab" class="tab-content">
+                    <div id="moderationZone" class="card moderation-box" style="background: #0f172a; padding: 25px; border-radius: 16px; border: 1px solid #1e293b;">
+                        
+                        <div style="background: #020617; padding: 15px 20px; border-radius: 12px; border: 1px solid #1e293b; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span style="font-size: 0.7rem; color: #38bdf8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; display: block; margin-bottom: 2px;">🔴 LIVE MODERACE AKTIVNÍHO ZÁPASU</span>
+                                <h2 style="margin: 0; font-size: 1.4rem; color: #fff;">Event: <span id="moderationEventTitle" class="text-gradient" style="color: #38bdf8;">Žádný event nevybrán</span></h2>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-size: 0.75rem; color: #94a3b8;">Fronta:</span>
+                                <span id="modBadge" style="background: #ef4444; color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; margin-left: 5px;">0</span>
+                            </div>
+                        </div>
+
+                        <p class="subtitle-desc" style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 20px; margin-top: -10px;">
+                            💡 **Vysvětlivky:** Fotky se z databáze nikdy nemažou. Můžeš libovolně měnit jejich stavy, upravovat nevhodné přezdívky nebo vynutit anonymizaci.
+                        </p>
+                        
+                        <div id="pendingPhotos" class="photo-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                            </div>
+                    </div>
+                </section>
+
+            </div> </div> </div> <div id="editModal" class="modal" style="display:none;">
+        <div class="modal-content-modern animate-slide-up" style="max-width: 1250px; width: 95%; background: #090d16; border: 1px solid #1e293b; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+            
+            <div class="modern-modal-header" style="padding: 20px 30px; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span class="header-badge" style="background: #1e1b4b; color: #818cf8; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;">PROJEKCE 16:9 STUDIO</span>
+                    <h3 style="color: #fff; margin-top: 5px; font-size: 1.4rem;">Vizuální konfigurátor živého plátna</h3>
+                </div>
+                <button onclick="closeEditModal()" class="close-circle-btn" style="background: #1e293b; color: #94a3b8; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; transition: all 0.2s;">&times;</button>
+            </div>
+            
+            <input type="hidden" id="editEventId">
+            
+            <div class="modern-modal-body" style="padding: 30px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 30px; max-height: calc(100vh - 200px); overflow-y: auto;">
+                
+                <div class="controls-column" style="display: flex; flex-direction: column; gap: 20px;">
+                    
+                    <div class="section-group" style="background: #0f172a; padding: 20px; border-radius: 16px; border: 1px solid #1e293b;">
+                        <h4 style="color: #38bdf8; font-size: 1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;"><span>01</span> Textové informace na plátně</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="input-card">
+                                <label style="display: block; color: #94a3b8; font-size: 0.8rem; margin-bottom: 5px;">Internal název akce (v tabulce adminu)</label>
+                                <input type="text" id="editEventName" style="width: 100%; background: #020617; border: 1px solid #334155; color: #fff; padding: 10px; border-radius: 8px;">
+                            </div>
+                            <div class="input-card">
+                                <label style="display: block; color: #38bdf8; font-size: 0.8rem; margin-bottom: 5px; font-weight: 600;">👑 Hlavní velký titulek na plátně</label>
+                                <input type="text" id="editWallTitle" placeholder="Např. ŽIVÁ FOTOSTĚNA" oninput="updateLivePreview()" style="width: 100%; background: #020617; border: 1px solid #38bdf8; color: #fff; padding: 10px; border-radius: 8px;">
+                            </div>
+                            <div class="input-card" style="grid-column: span 2;">
+                                <label style="display: block; color: #94a3b8; font-size: 0.8rem; margin-bottom: 5px;">Podtitul v horní liště plátna (Instrukce)</label>
+                                <input type="text" id="editEventSub" placeholder="Např. Naskenuj QR kód a pošli fotku!" oninput="updateLivePreview()" style="width: 100%; background: #020617; border: 1px solid #334155; color: #fff; padding: 10px; border-radius: 8px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-group" style="background: #0f172a; padding: 20px; border-radius: 16px; border: 1px solid #1e293b; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <h4 style="color: #38bdf8; font-size: 1rem; margin-bottom: 5px; grid-column: span 2;"><span>02</span> Časování a zobrazení prvků</h4>
+                        <div class="input-card">
+                            <label style="display: block; color: #94a3b8; font-size: 0.8rem; margin-bottom: 5px;">⏱️ Rychlost rotace fotek (v sekundách)</label>
+                            <input type="number" id="editRotationInterval" min="2" max="60" value="5" style="width: 100%; background: #020617; border: 1px solid #334155; color: #fff; padding: 10px; border-radius: 8px;">
+                        </div>
+                        <div class="input-card">
+                            <label style="display: block; color: #94a3b8; font-size: 0.8rem; margin-bottom: 5px;">Aktivní herní modul (Skrytá hodnota)</label>
+                            <select id="editGameSelect" style="width: 100%; background: #020617; border: 1px solid #334155; color: #fff; padding: 10px; border-radius: 8px; opacity: 0.6;">
+                                <option value="social_watch">📸 Social Watch (Fotostěna)</option>
+                            </select>
+                        </div>
+                        <div style="grid-column: span 2; display: flex; gap: 20px; background: #020617; padding: 12px; border-radius: 8px; border: 1px solid #1e293b;">
+                            <label style="display: flex; align-items: center; gap: 8px; color: #fff; font-size: 0.85rem; cursor: pointer;">
+                                <input type="checkbox" id="editShowHeaders" checked onchange="updateLivePreview()" style="width:16px; height:16px; accent-color:#38bdf8;"> Zobrazit horní lištu
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; color: #fff; font-size: 0.85rem; cursor: pointer;">
+                                <input type="checkbox" id="editShowWallQr" checked onchange="updateLivePreview()" style="width:16px; height:16px; accent-color:#38bdf8;"> Zobrazit QR kód stěny
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="section-group" style="background: #0f172a; padding: 20px; border-radius: 16px; border: 1px solid #1e293b;">
+    <h4 style="color: #38bdf8; font-size: 1rem; margin-bottom: 15px;"><span>03</span> Pozadí, logo a inteligentní střed</h4>
+    
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 15px;">
+        
+        <div class="upload-tile-modern" style="background: #020617; padding: 12px; border-radius: 10px; border: 1px dashed #334155; text-align: center; display: flex; flex-direction: column; justify-content: space-between; align-items: center; min-height: 85px;">
+            <span style="font-size:0.75rem; color:#94a3b8; display:block; margin-bottom:2px;">🖼️ Logo klienta</span>
+            <input type="file" id="editLogoInput" accept="image/*" style="display:none;">
+            <div style="display: flex; gap: 4px; justify-content: center; width: 100%;">
+                <button type="button" onclick="document.getElementById('editLogoInput').click()" style="background:#1e293b; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:0.75rem; cursor:pointer; flex-grow: 1;">Vybrat</button>
+                <button type="button" id="btnResetLogo" onclick="window.currentLogoUrl = ''; window.selectedLogoFile = null; document.getElementById('editLogoInput').value = ''; document.getElementById('editLogoStatus').textContent = 'Smazáno (neuloženo)'; document.getElementById('editLogoStatus').style.color = '#ef4444'; if(document.getElementById('editLogoPreviewContainer')) document.getElementById('editLogoPreviewContainer').style.display = 'none'; if(typeof window.updateLivePreview === 'function') window.updateLivePreview();" style="background:#1e293b; color:#ef4444; border:1px solid #334155; padding:6px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer;" title="Smazat logo">❌</button>
+            </div>
+            <small id="editLogoStatus" style="display:block; margin-top:3px; color:#64748b; font-size:0.65rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">Nenahráno</small>
+        </div>
+        
+        <div class="upload-tile-modern" style="background: #020617; padding: 12px; border-radius: 10px; border: 1px dashed #334155; text-align: center; display: flex; flex-direction: column; justify-content: space-between; align-items: center; min-height: 85px;">
+            <span style="font-size:0.75rem; color:#94a3b8; display:block; margin-bottom:2px;">🌌 Obrázek pozadí</span>
+            <input type="file" id="editBgInput" accept="image/*" style="display:none;">
+            <div style="display: flex; gap: 4px; justify-content: center; width: 100%;">
+                <button type="button" onclick="document.getElementById('editBgInput').click()" style="background:#1e293b; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:0.75rem; cursor:pointer; flex-grow: 1;">Vybrat</button>
+                <button type="button" id="btnResetBg" onclick="window.currentBgUrl = ''; window.selectedBgFile = null; document.getElementById('editBgInput').value = ''; document.getElementById('editBgStatus').textContent = 'Smazáno (neuloženo)'; document.getElementById('editBgStatus').style.color = '#ef4444'; if(document.getElementById('editBgPreviewContainer')) document.getElementById('editBgPreviewContainer').style.display = 'none'; if(typeof window.updateLivePreview === 'function') window.updateLivePreview();" style="background:#1e293b; color:#ef4444; border:1px solid #334155; padding:6px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer;" title="Smazat pozadí">❌</button>
+            </div>
+            <small id="editBgStatus" style="display:block; margin-top:3px; color:#64748b; font-size:0.65rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">Výchozí barva</small>
+        </div>
+        
+        <div class="upload-tile-modern" style="background: #020617; padding: 12px; border-radius: 10px; border: 1px solid #1e293b; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 85px;">
+            <span style="font-size:0.75rem; color:#94a3b8; display:block; margin-bottom:5px;">🎨 Barva pozadí</span>
+            <div style="display: flex; align-items: center; justify-content:center; gap: 6px;">
+                <input type="color" id="editBgColor" value="#05070f" onchange="updateLivePreview()" style="width: 30px; height: 25px; border: none; cursor: pointer; background: transparent;">
+                <span id="colorHexText" style="font-size: 0.7rem; font-family: monospace; color:#94a3b8;">#05070F</span>
+            </div>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #020617; padding: 15px; border-radius: 10px; border: 1px solid #1e293b; margin-bottom: 12px;">
+        <div>
+            <label style="display: block; color: #38bdf8; font-size: 0.75rem; font-weight:600; margin-bottom: 5px;">📍 Pozice Loga klienta</label>
+            <select id="editLogoPosition" onchange="updateLivePreview()" style="width: 100%; background: #0f172a; border: 1px solid #334155; color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">
+                <option value="pos-left">Logo vlevo (Standard)</option>
+                <option value="pos-right">Logo vpravo (Obráceně)</option>
+            </select>
+        </div>
+        <div>
+            <label style="display: block; color: #38bdf8; font-size: 0.75rem; font-weight:600; margin-bottom: 5px;">📲 Režim a Pozice QR kódu</label>
+            <select id="editQrPosition" onchange="updateLivePreview()" style="width: 100%; background: #0f172a; border: 1px solid #334155; color: #fff; padding: 8px; border-radius: 6px; font-size: 0.85rem; cursor: pointer;">
+                <option value="qr-right">QR kód vpravo (Standard)</option>
+                <option value="qr-left">QR kód vlevo (Obráceně)</option>
+                <option value="qr-none">❌ Schovat QR kód (Zobrazit pouze Logo)</option>
+            </select>
+        </div>
+        <small style="grid-column: span 2; color: #64748b; font-size: 0.7rem; margin-top: -5px; font-style: italic;">💡 Vychytávka: Pokud logo smažeš, nebo vpravo zvolíš skrytí jednoho z prvků, zbývající prvek (např. samotný QR kód) automaticky skočí přesně doprostřed středové kostky!</small>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; background: #020617; padding: 12px; border-radius: 8px; border: 1px solid #1e293b;">
+        <label style="display: flex; align-items: center; gap: 8px; color: #fff; font-size: 0.8rem; cursor: pointer; margin:0;">
+            <input type="checkbox" id="editShowCenterBg" checked onchange="updateLivePreview()" style="width:14px; height:14px; accent-color:#38bdf8;"> Podbarvit střed (Logo & QR)
+        </label>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="color" id="editCenterBgColor" value="#000000" onchange="updateLivePreview()" style="width: 25px; height: 22px; border: none; cursor: pointer; background: transparent;">
+            <span id="centerBgHexText" style="font-size: 0.75rem; font-family: monospace; color:#94a3b8;">#000000</span>
+        </div>
+    </div>
+</div>
+
+                    <div class="section-group" style="background: #0f172a; padding: 20px; border-radius: 16px; border: 1px solid #1e293b;">
+                        <h4 style="color: #38bdf8; font-size: 1rem; margin-bottom: 15px;"><span>04</span> Přezdívky autorů, stíny a podbarvení jmen</h4>
+                        <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 12px;">
+                            <div style="background: #020617; padding: 10px; border-radius: 8px; border: 1px solid #1e293b; display: flex; flex-direction: column; justify-content: center; gap: 6px;">
+                                <label style="display: flex; align-items: center; gap: 6px; color: #fff; font-size: 0.8rem; cursor: pointer; margin:0;">
+                                    <input type="checkbox" id="editShowNicknames" checked onchange="updateLivePreview()" style="width:14px; height:14px; accent-color:#38bdf8;"> Zobrazit jména
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; color: #fff; font-size: 0.8rem; cursor: pointer; margin:0;">
+                                    <input type="checkbox" id="editMaskNicknames" onchange="updateLivePreview()" style="width:14px; height:14px; accent-color:#38bdf8;"> Maskovat (J***)
+                                </label>
+                            </div>
+                            <div class="input-card" style="background: #020617; padding: 8px 12px; border-radius: 8px; border: 1px solid #1e293b; margin:0;">
+                                <label style="display:block; color:#94a3b8; font-size:0.7rem; margin-bottom:3px;">🎨 Písmo jména</label>
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <input type="color" id="editNickColor" value="#f1f5f9" onchange="updateLivePreview()" style="width:22px; height:20px; border:none; background:transparent; cursor:pointer;">
+                                    <input type="text" id="editNickColorHex" value="#f1f5f9" oninput="updateLivePreview()" style="width:100%; background:transparent; border:none; color:#fff; font-size:0.75rem; font-family:monospace; padding:0;">
+                                </div>
+                            </div>
+                            <div class="input-card" style="background: #020617; padding: 8px 12px; border-radius: 8px; border: 1px solid #1e293b; margin:0;">
+                                <label style="display:block; color:#94a3b8; font-size:0.7rem; margin-bottom:3px;">⬛ Proužek pod jménem</label>
+                                <div style="display: flex; align-items: center; gap: 5px;">
+                                    <input type="color" id="editNickBgColor" value="#0f172a" onchange="updateLivePreview()" style="width:22px; height:20px; border:none; background:transparent; cursor:pointer;">
+                                    <input type="text" id="editNickBgColorHex" value="#0F172A" oninput="updateLivePreview()" style="width:100%; background:transparent; border:none; color:#fff; font-size:0.75rem; font-family:monospace; padding:0;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="background: #020617; padding: 10px; border-radius: 8px; border: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; margin-top: 12px;">
+                            <label style="display: flex; align-items: center; gap: 6px; color: #fff; font-size: 0.8rem; cursor: pointer; margin:0;">
+                                <input type="checkbox" id="editShowShadows" onchange="updateLivePreview()" style="width:14px; height:14px; accent-color:#38bdf8;"> Neonový stín fotek
+                            </label>
+                            <input type="color" id="editShadowColor" value="#38bdf8" onchange="updateLivePreview()" style="width: 22px; height: 20px; border: none; cursor: pointer; background: transparent;">
+                        </div>
+                    </div>
+
+                </div> <div class="preview-column" style="display: flex; flex-direction: column; justify-content: start;">
+                    <div class="sticky-preview-wrapper" style="position: sticky; top: 0;">
+                        <div class="preview-headline" style="color: #94a3b8; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; margin-bottom: 10px;">🖥️ ŽIVÝ SIMULÁTOR PLÁTNA (ÚPRAVY V REÁLNÉM ČASE)</div>
+                        
+                        <div id="canvasSimulator" class="canvas-simulator-modern" style="width: 100%; aspect-ratio: 16 / 9; background: #05070f; border-radius: 12px; border: 4px solid #1e293b; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
+                            <div id="simHeader" class="sim-header-modern" style="background: rgba(11,14,23,0.9); padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(30,41,59,0.5); height: 30px; flex-shrink:0;">
+                                <span id="simTitleText" style="color: #fff; font-weight: 700; font-size: 0.65rem; letter-spacing: 0.5px;">NÁZEV AKCE</span>
+                                <span id="simSubText" style="color: #a78bfa; font-size: 0.55rem; font-weight: 600;">Instrukce k akci...</span>
+                            </div>
+                            
+                            <div id="simGrid" class="sim-grid-modern layout-symmetrical-8" style="flex-grow:1; padding: 12px; display:grid; gap: 8px; box-sizing: border-box;">
+                                <div class="sim-slot-sq" data-sim-index="0" style="background:#0b111e; border:1px solid #1e293b; border-radius:6px; overflow:hidden;"><span class="sim-nick-placeholder" style="background:#0f172a; color:#f1f5f9; font-size:0.45rem; padding:2px; text-align:center; display:block;">👤 Host</span></div>
+                                <div class="sim-slot-sq" data-sim-index="1" style="background:#0b111e; border:1px solid #1e293b; border-radius:6px; overflow:hidden;"><span class="sim-nick-placeholder" style="background:#0f172a; color:#f1f5f9; font-size:0.45rem; padding:2px; text-align:center; display:block;">👤 Host</span></div>
+                                <div class="sim-slot-sq" data-sim-index="4" style="background:#0b111e; border:1px solid #1e293b; border-radius:6px; overflow:hidden;"><span class="sim-nick-placeholder" style="background:#0f172a; color:#f1f5f9; font-size:0.45rem; padding:2px; text-align:center; display:block;">👤 Host</span></div>
+                                <div class="sim-slot-sq" data-sim-index="5" style="background:#0b111e; border:1px solid #1e293b; border-radius:6px; overflow:hidden;"><span class="sim-nick-placeholder" style="background:#0f172a; color:#f1f5f9; font-size:0.45rem; padding:2px; text-align:center; display:block;">👤 Host</span></div>
+                                
+                                <div class="sim-center-zone" style="background: #000; border-radius: 8px; border: 1px dashed #334155; display: flex; padding: 8px; justify-content: space-between; align-items: center; box-sizing: border-box; height:100%; width:100%;">
+                                    <div id="simQr" class="sim-item-box" style="height: 85%; width: 44%; display: flex; align-items: center; justify-content: center; background: #fff; border-radius: 6px; color:#000; font-size:0.5rem; font-weight:bold;">QR KÓD</div>
+                                    <div id="simLogoPlace" class="sim-item-box" style="height: 85%; width: 44%; display: flex; align-items: center; justify-content: center; background: #1e293b; border-radius: 6px; color:#fff; font-size:0.5rem; font-weight:bold;">LOGO</div>
+                                </div>
+
+                                <div class="sim-slot-sq" data-sim-index="6" style="background:#0b111e; border:1px solid #1e293b; border-radius:6px; overflow:hidden;"><span class="sim-nick-placeholder" style="background:#0f172a; color:#f1f5f9; font-size:0.45rem; padding:2px; text-align:center; display:block;">👤 Host</span></div>
+                                <div class="sim-slot-sq" data-sim-index="7" style="background:#0b111e; border:1px solid #1e293b; border-radius:6px; overflow:hidden;"><span class="sim-nick-placeholder" style="background:#0f172a; color:#f1f5f9; font-size:0.45rem; padding:2px; text-align:center; display:block;">👤 Host</span></div>
+                                <div class="sim-slot-sq" data-sim-index="2" style="background:#0b111e; border:1px solid #1e293b; border-radius:6px; overflow:hidden;"><span class="sim-nick-placeholder" style="background:#0f172a; color:#f1f5f9; font-size:0.45rem; padding:2px; text-align:center; display:block;">👤 Host</span></div>
+                                <div class="sim-slot-sq" data-sim-index="3" style="background:#0b111e; border:1px solid #1e293b; border-radius:6px; overflow:hidden;"><span class="sim-nick-placeholder" style="background:#0f172a; color:#f1f5f9; font-size:0.45rem; padding:2px; text-align:center; display:block;">👤 Host</span></div>
+                            </div>
+                        </div>
+
+                        <div class="preview-thumbnails" style="display: flex; gap: 10px; margin-top: 15px;">
+                            <div id="editLogoPreviewContainer" class="thumb-box" style="display:none; background:#0f172a; padding:8px; border-radius:8px; border:1px solid #1e293b; width:50%;">
+                                <h6 style="color:#94a3b8; font-size:0.65rem; margin-bottom:3px;">Lokální náhled loga:</h6>
+                                <img id="editLogoPreview" src="" style="max-height:40px; width:auto; border-radius:4px; display:block;">
+                            </div>
+                            <div id="editBgPreviewContainer" class="thumb-box" style="display:none; background:#0f172a; padding:8px; border-radius:8px; border:1px solid #1e293b; width:50%;">
+                                <h6 style="color:#94a3b8; font-size:0.65rem; margin-bottom:3px;">Lokální náhled tapety:</h6>
+                                <img id="editBgPreview" src="" style="max-height:40px; width:auto; border-radius:4px; display:block;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div> <div class="modern-modal-footer" style="padding: 20px 30px; border-top: 1px solid #1e293b; display: flex; justify-content: flex-end; gap: 12px; background: #0b0f19; border-bottom-left-radius: 24px; border-bottom-right-radius: 24px;">
+                <button onclick="closeEditModal()" class="btn-cancel-modern" style="background: transparent; color: #94a3b8; border: 1px solid #334155; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s;">Zrušit změny</button>
+                <button id="btnSaveEdit" class="btn-save-modern" style="background: #38bdf8; color: #04060d; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 700; box-shadow: 0 4px 14px rgba(56,189,248,0.3); transition: all 0.2s;">💾 Uložit kompletní nastavení</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="qrModal" class="modal" style="display:none;">
+        <div class="modal-content text-center" style="max-width: 350px;">
+            <div class="modal-header">
+                <h3 id="qrModalTitle">QR Kód Akce</h3>
+                <button onclick="closeQrModal()" class="close-btn">&times;</button>
+            </div>
+            <div class="qr-modal-body" style="background: white; padding: 20px; border-radius: 12px; margin: 15px 0;">
+                <canvas id="qrCanvas" style="display:none;"></canvas>
+                <img id="qrModalImg" src="" alt="Zvětšený QR kód" style="max-width: 100%; display: block; margin: 0 auto;">
+            </div>
+            <button id="btnDownloadQr" class="btn-primary" style="margin-top: 10px;">💾 Stáhnout QR kód (PNG)</button>
+        </div>
+    </div>
+
+    <script type="module" src="admin.js"></script>
+</body>
+</html>
