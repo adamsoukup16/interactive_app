@@ -243,12 +243,18 @@ window.refreshEventsTable = function() {
 
         visibleRowsCount++;
 
-        const publicUrl = `${window.location.origin}/public/index.html?event=${id}`;
-        const wallUrl = `${window.location.origin}/wall/index.html?event=${id}`;
-        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(publicUrl)}`;
+        // 🔥 TADY JE TA ZMĚNA:
+        const pathSegments = window.location.pathname.split('/');
+        const adminIndex = pathSegments.indexOf('admin');
+        const repoPath = adminIndex > 0 ? pathSegments.slice(0, adminIndex).join('/') : '';
+        const projectBaseUrl = `${window.location.origin}${repoPath}`;
+
+        const publicUrl = `${projectBaseUrl}/public/index.html?event=${id}`;
+        const wallUrl = `${projectBaseUrl}/wall/index.html?event=${id}`;
+        const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(publicUrl)}`;
         const scans = event.scanCount || 0;
 
-        // Načteme si statistiky z paměti, pokud už je máme stažené (Zabrání zobrazení nul při překlikávání menu!)
+        // Načteme si statistiky z paměti, pokud už je máme stažené
         const stats = window.cachedStats[id] || { total: 0, approved: 0, pending: 0, rejected: 0 };
 
         let actionButtons = "";
