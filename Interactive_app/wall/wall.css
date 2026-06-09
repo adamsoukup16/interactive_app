@@ -1,0 +1,171 @@
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+    font-family: sans-serif; 
+}
+
+body {
+    background-color: #04060d;
+    color: white;
+    overflow: hidden; /* Fixní 1 obrazovka Full Screen bez scrollu */
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 🔝 Horní lišta */
+.wall-header {
+    background-color: #0b0e17;
+    padding: 16px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #141b2d;
+    height: 70px;
+    flex-shrink: 0;
+}
+.wall-header .logo { font-size: 1.6rem; font-weight: 900; color: #38bdf8; letter-spacing: 1px; }
+.wall-header .instructions { font-size: 1.2rem; font-weight: bold; color: #a78bfa; }
+
+/* 🖥️ 🔥 DEFINICE ULTRA JEMNÉ MŘÍŽKY 16x9 */
+.wall-grid {
+    display: grid;
+    /* 16 stejně širokých sloupců */
+    grid-template-columns: repeat(16, 1fr);
+    /* 9 stejně vysokých řad (dokonalé čtvercové buňky pro 16:9 screen) */
+    grid-template-rows: repeat(9, 1fr);
+    
+    gap: 20px;
+    padding: 24px;
+    flex-grow: 1;
+    height: calc(100vh - 70px);
+    box-sizing: border-box;
+}
+
+/* 🔳 KARTA PRO FOTKU */
+.wall-card {
+    background-color: #0b111e;
+    border: 2px solid #1e293b;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    min-height: 0;
+    /* 🔥 ÚPRAVA: Čas 1.2s zajistí extrémně hladké a pomalé prolnutí */
+    transition: opacity 1.2s ease-in-out, transform 1.2s ease-in-out, box-shadow 0.3s ease, border-color 0.3s ease;
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* 📐 PRECIZNÍ UMÍSTĚNÍ POMOCÍ LINIEK A SPANŮ V MŘÍŽCE 16x9 */
+
+/* 👈 LEVÝ KRAJ: 2 velké fotky */
+.wall-card[data-slot-index="0"] { grid-column: 1 / span 5; grid-row: 1 / span 4; }
+.wall-card[data-slot-index="1"] { grid-column: 1 / span 5; grid-row: 5 / span 5; }
+
+/* 👉 PRAVÝ KRAJ: 2 velké fotky */
+.wall-card[data-slot-index="2"] { grid-column: 12 / span 5; grid-row: 1 / span 4; }
+.wall-card[data-slot-index="3"] { grid-column: 12 / span 5; grid-row: 5 / span 5; }
+
+/* 🔼 HORNÍ STŘED: 2 menší čtverce vedle sebe */
+.wall-card[data-slot-index="4"] { grid-column: 6 / span 3; grid-row: 1 / span 3; }
+.wall-card[data-slot-index="5"] { grid-column: 9 / span 3; grid-row: 1 / span 3; }
+
+/* 🔽 SPODNÍ STŘED: 2 menší čtverce vedle sebe */
+.wall-card[data-slot-index="6"] { grid-column: 6 / span 3; grid-row: 7 / span 3; }
+.wall-card[data-slot-index="7"] { grid-column: 9 / span 3; grid-row: 7 / span 3; }
+
+
+/* ⬛ GIGANTICKÝ STŘEDOVÝ PANEL PRO BRANDING (DYNAMICKÝ FLEXBOX) */
+.wall-center-branding-zone {
+    grid-column: 6 / span 6; 
+    grid-row: 4 / span 3;    
+    
+    border-radius: 24px;
+    padding: 20px 45px; 
+    display: flex;
+    /* justify-content se mění dynamicky přes JS (space-between / center) */
+    justify-content: space-between; 
+    align-items: center;
+    z-index: 5;
+    height: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    transition: background-color 0.3s ease, border 0.3s ease;
+}
+
+/* 🔥 DYNAMICKÉ BOXY PRO KOMPONENTY VE STŘEDU (Logo & QR) */
+.brand-component-box {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    /* Šířka se přizpůsobuje dynamicky v JS (44 % při obou, 60 % při samotném QR) */
+    box-sizing: border-box;
+}
+
+/* 📲 STYLING PRO QR KÓD */
+/* 📲 STYLING PRO QR KÓD (OPRAVENÝ PRO MAZÁNÍ LOGA) */
+#wallLiveQr {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* 🔥 Vynutí, aby byl obrázek QR kódu VŽDY uprostřed svého boxu */
+    flex-grow: 1;            /* 🔥 Pokud je QR kód sám, plynule zabere veškeré dostupné místo */
+}
+#wallLiveQr img {
+    max-height: 85%;
+    width: auto;
+    aspect-ratio: 1 / 1;
+    background: white;
+    padding: 12px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;          /* 🔥 Pojistka pro absolutní geometrický střed */
+}
+
+/* 🖼️ STYLING PRO KLIENTSKÉ LOGO */
+#wallLiveLogoContainer {
+    display: flex;
+    align-items: center;
+}
+#clientLogo {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+/* ✂️ Ořezový systém vnitřku karet na čisté čtverce 1:1 */
+.square-image-container {
+    width: 100%;
+    flex-grow: 1;
+    position: relative;
+    background: #000;
+    min-height: 0;
+}
+.square-image-container img {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    object-fit: cover;
+}
+
+/* Spodní/Horní lišta jména */
+.wall-footer { 
+    padding: 8px 12px; 
+    text-align: center; 
+    font-size: 0.9rem; 
+    /* background-color se mění dynamicky v JS podle uložení v adminu */
+}
+.wall-card .wall-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08); 
+}
+.wall-card.nick-top .wall-footer {
+    border-top: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.user-badge { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }

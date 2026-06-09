@@ -1,0 +1,608 @@
+/* --- MODERNÍ RESET A FONT --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    transition: all 0.2s ease;
+}
+
+body {
+    background-color: #090d16;
+    color: #f1f5f9;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* --- LAYOUT PROSŘEDÍ --- */
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* --- LEVÝ SIDEBAR --- */
+.sidebar {
+    width: 260px;
+    background-color: #0f172a;
+    border-right: 1px solid #1e293b;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px;
+    position: fixed;
+    height: 100vh;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid #1e293b;
+    margin-bottom: 24px;
+}
+
+.brand-icon { font-size: 1.8rem; }
+.brand-text h3 { font-size: 1.1rem; font-weight: 700; color: #fff; }
+.status-tag { font-size: 0.75rem; color: #10b981; font-weight: 600; }
+
+.sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-grow: 1;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: #94a3b8;
+    text-decoration: none;
+    font-weight: 500;
+    border-radius: 8px;
+}
+
+.menu-item:hover, .menu-item.active {
+    background-color: #1e293b;
+    color: #38bdf8;
+}
+
+.menu-item.active {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.badge-count {
+    background-color: #ef4444;
+    color: white;
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 20px;
+    margin-left: auto;
+    font-weight: 700;
+}
+
+.sidebar-footer {
+    font-size: 0.75rem;
+    color: #475569;
+    text-align: center;
+}
+
+/* --- HLAVNÍ OBSAH --- */
+.main-content {
+    margin-left: 260px;
+    flex-grow: 1;
+    padding: 40px;
+    background-color: #090d16;
+}
+
+.main-header {
+    margin-bottom: 32px;
+}
+
+.main-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.main-header p { color: #64748b; font-size: 0.95rem; }
+
+/* --- DYNAMICKÉ TABY --- */
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+
+.grid-2x1 {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 24px;
+}
+
+/* --- MODERNÍ KARTY (CARDS) --- */
+.card {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.card h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 24px;
+    color: #fff;
+}
+
+/* --- FORMULÁŘE --- */
+.form-group { margin-bottom: 20px; }
+label { display: block; font-size: 0.85rem; font-weight: 600; color: #94a3b8; margin-bottom: 8px; }
+
+input[type="text"], select {
+    width: 100%;
+    padding: 12px 16px;
+    background-color: #020617;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.95rem;
+}
+
+input[type="text"]:focus, select:focus {
+    outline: none;
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+/* --- TLAČÍTKA --- */
+.btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+    color: #fff;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(2, 132, 199, 0.4); }
+
+/* --- LIVE STATUS A QR --- */
+.event-details {
+    background-color: #020617;
+    padding: 16px;
+    border-radius: 10px;
+    text-align: center;
+    margin-bottom: 16px;
+    border: 1px solid #1e293b;
+}
+.event-details code { color: #f43f5e; font-size: 0.85rem; font-family: monospace; }
+
+.qr-wrapper {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+}
+#qrcode img { display: block; margin: 0 auto 10px; }
+#qrcode a { color: #0284c7; font-weight: 600; text-decoration: none; font-size: 0.9rem; }
+
+/* --- TABULKA SAKCÍ --- */
+.table-responsive { width: 100%; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 16px; border-bottom: 1px solid #1e293b; text-align: left; }
+th { font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 700; background-color: #020617; }
+tr:hover { background-color: #1e293b; }
+
+.badge { background: #334155; color: #38bdf8; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+.scan-counter { color: #10b981; font-weight: 600; }
+
+.btn-action {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-left: 4px;
+}
+.btn-qr { background-color: #0369a1; color: #fff; }
+.btn-edit { background-color: #f59e0b; color: #000; }
+.btn-delete { background-color: #dc2626; color: #fff; }
+
+/* --- MODEROVÁNÍ MŘÍŽKA --- */
+.photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 20px; }
+.photo-card-admin { background: #020617; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden; position: relative; }
+.photo-card-admin img { width: 100%; height: 160px; object-fit: cover; }
+.photo-card-admin .info { padding: 10px; font-size: 0.85rem; font-weight: 500; text-align: center; }
+.photo-card-admin .actions { display: flex; }
+.photo-card-admin .actions button { flex: 1; padding: 10px; border: none; font-weight: 600; cursor: pointer; }
+
+/* --- MODÁLNÍ OKNO S SKLENĚNÝM EFEKTEM --- */
+.modal {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(2, 6, 23, 0.8); backdrop-filter: blur(8px);
+    display: flex; justify-content: center; align-items: center; z-index: 999;
+}
+.modal-content {
+    background: #0f172a; border: 1px solid #334155; padding: 32px; border-radius: 16px; width: 100%; max-width: 420px;
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.close-btn { background: none; border: none; color: #64748b; font-size: 1.5rem; cursor: pointer; }
+.modal-buttons { display: flex; justify-content: space-between; margin-top: 24px; gap: 12px; }
+.modal-buttons button { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; }
+.btn-secondary { background: #334155; color: white; }
+.btn-success { background: #10b981; color: white; }
+
+.text-gradient { background: linear-gradient(135deg, #38bdf8 0%, #b45309 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* --- ANALYTICKÉ STATISTIKY V TABULCE --- */
+.stats-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.8rem;
+}
+.stat-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.stat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.stat-dot.total { background-color: #64748b; }
+.stat-dot.approved { background-color: #10b981; }
+.stat-dot.pending { background-color: #f59e0b; }
+
+/* Mini QR a Live Wall tlačítka */
+.access-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.mini-qr-trigger {
+    background: white;
+    padding: 4px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid #334155;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.mini-qr-trigger:hover {
+    transform: scale(1.1);
+    border-color: #38bdf8;
+}
+.mini-qr-trigger img {
+    width: 32px;
+    height: 32px;
+    display: block;
+}
+.btn-live-wall {
+    background-color: #1e1b4b;
+    border: 1px solid #4338ca;
+    color: #c084fc;
+    padding: 6px 12px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.btn-live-wall:hover {
+    background-color: #312e81;
+    color: #e9d5ff;
+}
+
+.text-center { text-align: center; }
+
+/* --- SIMULÁTOR PROJEKČNÍHO PLÁTNA V MODALU --- */
+.canvas-simulator {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background-color: #05070f;
+    border: 2px solid #334155;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.sim-header {
+    background-color: #0f111a;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #1e293b;
+    font-size: 0.6rem;
+    font-weight: bold;
+}
+.sim-logo-indicator {
+    background: #38bdf8;
+    color: #000;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-size: 0.5rem;
+}
+.sim-title-text { margin-left: 8px; color: #94a3b8; }
+
+/* Simulované pozice prvků */
+.pos-left { order: -1; margin-right: auto; margin-left: 0; }
+.pos-center { margin: 0 auto; }
+.pos-right { order: 1; margin-left: auto; margin-right: 0; }
+
+.sim-grid-container {
+    padding: 10px;
+    display: grid;
+    gap: 6px;
+    flex-grow: 1;
+}
+/* Styly simulace rozložení */
+.sim-grid-container.layout-grid { grid-template-columns: repeat(3, 1fr); }
+.sim-grid-container.layout-masonry { grid-template-columns: repeat(4, 1fr); }
+.sim-grid-container.layout-masonry .sim-photo:nth-child(odd) { height: 110%; }
+.sim-grid-container.layout-cinematic { grid-template-columns: repeat(2, 1fr); }
+.sim-grid-container.layout-fullscreen { grid-template-columns: 1fr; padding: 20px 60px; }
+.sim-grid-container.layout-polaroid { grid-template-columns: repeat(3, 1fr); padding: 15px; }
+.sim-grid-container.layout-polaroid .sim-photo { background: #fff !important; border-bottom: 10px solid #fff !important; transform: rotate(-3deg); }
+
+.sim-photo { background-color: #1e293b; border-radius: 4px; border: 1px solid #475569; width: 100%; height: 100%; }
+
+.sim-qr-indicator {
+    position: absolute;
+    bottom: 8px;
+    background: #fff;
+    color: #000;
+    width: 24px;
+    height: 24px;
+    font-size: 0.5rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+.qr-left { left: 8px; }
+.qr-right { right: 8px; }
+.qr-none { display: none !important; }
+
+/* --- ULTRA MODERNÍ MODAL DESIGN --- */
+.modal-content-modern {
+    background: #0b0f19;
+    border: 1px solid #1e293b;
+    border-radius: 24px;
+    width: 95%;
+    max-width: 1100px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+.modern-modal-header {
+    padding: 24px 32px;
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+    position: relative;
+}
+.header-badge {
+    background: rgba(56, 189, 248, 0.1);
+    color: #38bdf8;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 6px;
+}
+.modern-modal-header h3 { font-size: 1.4rem; color: #fff; font-weight: 700; }
+.close-circle-btn {
+    position: absolute; right: 24px; top: 28px;
+    background: #1e293b; border: none; color: #94a3b8;
+    width: 36px; height: 36px; border-radius: 50%;
+    font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.close-circle-btn:hover { background: #f43f5e; color: white; }
+
+.modern-modal-body {
+    padding: 32px;
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 32px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+/* Sekce a seskupování prvků */
+.section-group { margin-bottom: 28px; position: relative; padding-left: 24px; }
+.group-num { position: absolute; left: 0; top: 2px; font-size: 0.8rem; font-weight: 800; color: #38bdf8; opacity: 0.6; }
+.section-group h4 { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 12px; }
+
+.input-card { background: #0f172a; border: 1px solid #1e293b; padding: 12px 16px; border-radius: 12px; margin-bottom: 10px; }
+.input-card label { font-size: 0.8rem; color: #64748b; margin-bottom: 4px; }
+
+.control-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Nahrávací dlaždice */
+.upload-grid-modern { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.upload-tile {
+    background: #0f172a; border: 1px dashed #334155; padding: 16px; border-radius: 12px;
+    display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center;
+}
+.upload-tile span { font-size: 0.85rem; font-weight: 600; color: #f1f5f9; }
+.btn-tile-action { background: #1e293b; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+.btn-tile-action:hover { background: #334155; }
+.upload-tile small { font-size: 0.7rem; color: #64748b; }
+
+/* Přepínací karty (Toggles) */
+.toggle-cards { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.toggle-card {
+    background: #0f172a; border: 1px solid #1e293b; padding: 14px 16px; border-radius: 12px;
+    display: flex; align-items: flex-start; gap: 14px; cursor: pointer;
+}
+.toggle-card input[type="checkbox"] { width: 18px; height: 18px; accent-color: #38bdf8; margin-top: 2px; }
+.toggle-text h5 { font-size: 0.9rem; color: #fff; font-weight: 600; }
+.toggle-text p { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+
+/* Pravý sloupec s náhledem */
+.sticky-preview-wrapper { position: sticky; top: 0; }
+.preview-headline { font-size: 0.8rem; font-weight: 700; color: #38bdf8; text-align: center; margin-bottom: 12px; letter-spacing: 0.5px; }
+
+/* ŽIVÝ NÁHLED KOSTKY 16:9 */
+.canvas-simulator-modern {
+    width: 100%; aspect-ratio: 16 / 9; background: #04060d; border: 2px solid #1e293b; border-radius: 16px;
+    position: relative; overflow: hidden; display: flex; flex-direction: column;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+}
+.sim-header-modern { padding: 8px 16px; background: #0a0e1a; font-size: 0.65rem; font-weight: 700; color: #64748b; border-bottom: 1px solid #141b2d; display: flex; align-items: center; gap: 6px; }
+.sim-dot-live { width: 6px; height: 6px; background: #10b981; border-radius: 50%; }
+
+/* REVOLUČNÍ SYMETRICKÝ SIMULÁTOR */
+/* 🖥️ PRECIZNÍ SIMULÁTOR 16x9 SE SHODNÝMI SPANY JAKO NA PLÁTNĚ */
+.sim-grid-modern.layout-symmetrical-8 {
+    display: grid;
+    grid-template-columns: repeat(16, 1fr);
+    grid-template-rows: repeat(9, 1fr);
+    gap: 4px;
+    padding: 8px;
+    flex-grow: 1;
+    background: #05070f;
+    box-sizing: border-box;
+}
+
+/* Velikosti slotů v simulátoru */
+.sim-slot-sq[data-sim-index="0"] { grid-column: 1 / span 5; grid-row: 1 / span 4; }
+.sim-slot-sq[data-sim-index="1"] { grid-column: 1 / span 5; grid-row: 5 / span 5; }
+.sim-slot-sq[data-sim-index="2"] { grid-column: 12 / span 5; grid-row: 1 / span 4; }
+.sim-slot-sq[data-sim-index="3"] { grid-column: 12 / span 5; grid-row: 5 / span 5; }
+
+.sim-slot-sq[data-sim-index="4"] { grid-column: 6 / span 3; grid-row: 1 / span 3; }
+.sim-slot-sq[data-sim-index="5"] { grid-column: 9 / span 3; grid-row: 1 / span 3; }
+.sim-slot-sq[data-sim-index="6"] { grid-column: 6 / span 3; grid-row: 7 / span 3; }
+.sim-slot-sq[data-sim-index="7"] { grid-column: 9 / span 3; grid-row: 7 / span 3; }
+
+/* Středová zóna simulátoru */
+.sim-center-zone {
+    grid-column: 6 / span 6;
+    grid-row: 4 / span 3;
+    border-radius: 6px;
+    border: 1px dashed #334155;
+    display: flex;
+    padding: 6px 12px;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Vnitřní komponenty simulátoru */
+.sim-item-box {
+    height: 90% !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+#simQr img {
+    max-height: 100%;
+    width: auto;
+    display: block;
+    background: white;
+    padding: 2px;
+    border-radius: 4px;
+}
+#simLogoPlace img {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+/* Patka modalu */
+.modern-modal-footer { padding: 20px 32px; background: #0f172a; border-top: 1px solid #1e293b; display: flex; justify-content: flex-end; gap: 16px; }
+.btn-cancel-modern { background: transparent; border: none; color: #64748b; font-weight: 600; cursor: pointer; }
+.btn-cancel-modern:hover { color: #fff; }
+.btn-save-modern { background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: white; border: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(37,99,235,0.2); }
+
+.preview-thumbnails { display: flex; gap: 12px; margin-top: 12px; }
+.thumb-box { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 8px; flex: 1; }
+.thumb-box h6 { font-size: 0.65rem; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+.thumb-box img { max-height: 35px; border-radius: 4px; display: block; margin: 0 auto; }
+
+/* Stylování simulátoru pro přezdívky */
+.sim-slot-sq {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 4px;
+}
+.sim-nick-placeholder {
+    font-size: 0.5rem;
+    font-weight: 700;
+    text-align: center;
+    width: 100%;
+    display: block;
+    background: rgba(0,0,0,0.6);
+    padding: 1px 0;
+    border-radius: 2px;
+}
+/* Pozicování přezdívek v simulátoru */
+.sim-slot-sq.nick-top { justify-content: flex-start; }
+.sim-slot-sq.nick-bottom { justify-content: flex-end; }
+
+/* Moderní mřížka s 5 sloupci vedle sebe */
+.moderation-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+    padding: 10px 0;
+}
+
+/* Kompaktní karta s fotkou */
+.moderation-card {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+/* Zmenšený kontejner pro náhled fotky (čtverec 1:1) */
+.moderation-thumb-wrapper {
+    position: relative;
+    width: 100%;
+    padding-top: 100%; /* Dokonalý čtverec */
+    background: #020617;
+}
+
+.moderation-thumb-wrapper img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Třída pro plynulé smazání karty bez probliknutí zbytku webu */
+.card-fade-out {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+    pointer-events: none;
+}

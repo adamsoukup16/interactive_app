@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Wall - Živé vysílání 16:9</title>
+    <link rel="stylesheet" href="wall.css">
+</head>
+<body>
+
+    <div id="wallHeader" class="wall-header">
+        <span id="wallBrandName" class="logo">📸 LIVE FOTOSTĚNA</span>
+        <div class="instructions">Naskenujte QR kód a pošlete fotku na plátno!</div>
+    </div>
+
+    <main id="wallGrid" class="wall-grid layout-symmetrical-8">
+        
+        <div id="wallCenterZone" class="wall-center-branding-zone">
+            <div id="wallLiveQr" class="brand-component-box"></div>
+            <div id="wallLiveLogoContainer" class="brand-component-box">
+                <img id="clientLogo" src="" alt="Client Logo" style="display: none;">
+            </div>
+        </div>
+        
+    </main>
+
+    <script type="module" src="wall.js"></script>
+</body>
+</html>
