@@ -244,15 +244,23 @@ window.refreshEventsTable = function() {
         visibleRowsCount++;
 
         // 🔥 TADY JE TA ZMĚNA:
+        // 1. Výpočet základní URL adresy projektu (pro lokál i GitHub)
+        // 1. Výpočet základní URL adresy projektu (pro lokál i GitHub)
         const pathSegments = window.location.pathname.split('/');
         const adminIndex = pathSegments.indexOf('admin');
         const repoPath = adminIndex > 0 ? pathSegments.slice(0, adminIndex).join('/') : '';
         const projectBaseUrl = `${window.location.origin}${repoPath}`;
 
+        // 2. 🔥 DEFINICE VŠECH CEST (Oprava smazaných proměnných)
         const publicUrl = `${projectBaseUrl}/public/index.html?event=${id}`;
-        const wallUrl = `${projectBaseUrl}/wall/index.html?event=${id}`;
         const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(publicUrl)}`;
         const scans = event.scanCount || 0;
+
+        // Výběr správné složky pro plátno podle aktivní hry
+        let wallUrl = `${projectBaseUrl}/wall/index.html?event=${id}`;
+        if (event.activeGame === "pexeso") {
+            wallUrl = `${projectBaseUrl}/wall_pexeso/index.html?event=${id}`;
+        }
 
         // Načteme si statistiky z paměti, pokud už je máme stažené
         const stats = window.cachedStats[id] || { total: 0, approved: 0, pending: 0, rejected: 0 };
@@ -663,6 +671,12 @@ function listenToPhotosForModeration(eventId) {
         const container = document.getElementById("pendingPhotos"); 
         if (!container) return;
         
+        // 🔥 FIX MŘÍŽKY: Natvrdo aplikujeme ultra-moderní 5-sloupcový grid s menšími rozestupy
+        container.style.display = "grid";
+        container.style.gridTemplateColumns = "repeat(5, minmax(0, 1fr))";
+        container.style.gap = "12px";
+        container.style.padding = "10px 0";
+        
         container.innerHTML = "";
         let pendingCount = 0;
 
@@ -738,20 +752,20 @@ function listenToPhotosForModeration(eventId) {
             card.style = `${borderStyle} ${cardOpacity} border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4); transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);`;
             
             card.innerHTML = `
-                <div style="position: relative; width: 100%; aspect-ratio: 4/3; background: #000; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                <div style="position: relative; width: 100%; aspect-ratio: 1/1; background: #000; display:flex; align-items:center; justify-content:center; overflow:hidden;">
                     <img src="${photoData.imageUrl}" 
                          loading="lazy" 
                          decoding="async" 
-                         style="width:100%; height:100%; object-fit:cover; max-width: 400px; max-height: 300px; ${imageFilter} transition: all 0.25s ease;">
+                         style="width:100%; height:100%; object-fit:cover; ${imageFilter} transition: all 0.25s ease;">
                     
-                    <div style="position: absolute; top: 10px; left: 10px; z-index: 10;">
+                    <div style="position: absolute; top: 8px; left: 8px; z-index: 10;">
                         ${statusBadge}
                     </div>
 
                     ${imageOverlay}
                 </div>
 
-                <div style="padding: 14px; flex-grow: 1; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid rgba(255,255,255,0.05);">
+                <div style="padding: 10px; flex-grow: 1; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid rgba(255,255,255,0.05);">
                     <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 500;">⏱️ Doručeno: <span style="color:#cbd5e1; font-family: monospace;">${formattedTime}</span></div>
                     
                     <div>
@@ -834,3 +848,369 @@ window.togglePhotoNicknameVisibility = async function(eventId, photoId, shouldHi
 window.approvePhoto = async function(eId, pId) { await updateDoc(doc(db, "events", eId, "social_wall", pId), { approved: true }); }
 window.rejectPhoto = async function(eId, pId) { if (confirm("Smazat fotku?")) await deleteDoc(doc(db, "events", eId, "social_wall", pId)); }
 function generateQRCode(text) { document.getElementById("qrcode").innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(text)}"><br><a href="${text}" target="_blank">🔗 Otevřít odkaz</a>`; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+// =========================================================================
+// 🧩 MODUL: DIGITÁLNÍ PEXESO (100% ODDĚLENÁ HRA)
+// =========================================================================
+
+window.openPexesoControl = async function(eventId, eventTitle) {
+    // 1. Nastavení textů v hlavní hlavičce CorePanelu
+    document.getElementById("pageTitle").textContent = `Pexeso: ${eventTitle}`;
+    document.getElementById("pageSubtitle").textContent = "Správa herního turnaje, nastavení e-mailů a výsledky diváků";
+
+    const container = document.getElementById("pendingPhotos");
+    if (!container) return;
+
+    // 🔥 NEPRŮSTŘELNÝ FIX SKRÝVÁNÍ:
+    // Najdeme ten otravný vnitřní header fotostěny, který je přímo v zóně moderování a schováme ho
+    const moderationZone = document.getElementById("moderationZone");
+    if (moderationZone) {
+        moderationZone.style.background = "transparent"; // Odstraníme tmavé pozadí z fotostěny, ať pexeso sedí čistě
+        moderationZone.style.border = "none";
+        moderationZone.style.padding = "0";
+
+        // Vyhledáme první vnitřní div (to bývá ta lišta s LIVE MODERACE a vysvětlivkami) a schováme je
+        const badHeader = moderationZone.querySelector("div");
+        if (badHeader) badHeader.style.display = "none";
+        
+        const badParagraph = moderationZone.querySelector(".subtitle-desc") || moderationZone.querySelector("p");
+        if (badParagraph) badParagraph.style.display = "none";
+    }
+
+    // Vynutíme, aby náš pexeso kontejner byl stoprocentně vidět hned nahoře!
+    container.style.display = "block";
+    container.style.width = "100%";
+    container.style.maxWidth = "1100px";
+    container.style.margin = "0 auto";
+    container.style.opacity = "1"; // Pojistka proti skrytí
+    
+    // Vygenerujeme čisté herní manažerské prostředí
+    container.innerHTML = `
+        <div class="pexeso-manager-panel" style="background: #020617; padding: 25px; border-radius: 16px; border: 1px solid #1e293b; color: #fff; font-family: sans-serif;">
+            
+            <div style="background: #0f172a; padding: 20px; border-radius: 12px; border: 1px solid #1e293b; margin-bottom: 25px;">
+                <h3 style="margin: 0 0 5px 0; color: #38bdf8; font-size: 1.1rem;">Nastavení turnaje</h3>
+                <p style="margin: 0 0 15px 0; font-size: 0.8rem; color: #94a3b8;">Ovlivňuje chování hry na mobilech diváků.</p>
+                
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; font-size: 0.95rem;">
+                    <input type="checkbox" id="chkRequireEmail" style="width: 18px; height: 18px; cursor: pointer;">
+                    Vyžadovat e-mail před spuštěním hry
+                </label>
+            </div>
+
+            <div style="background: #0f172a; padding: 20px; border-radius: 12px; border: 1px solid #1e293b;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #1e293b; padding-bottom: 10px;">
+                    <h3 style="margin: 0; font-size: 1.1rem; color: #a78bfa;">🏆 Průběžný žebříček turnaje (TOP 20)</h3>
+                    <span style="font-size: 0.75rem; background: #1e293b; padding: 4px 10px; border-radius: 20px; color: #94a3b8; font-weight: 600;">Real-time synchronizace</span>
+                </div>
+                
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #1e293b; color: #94a3b8; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">
+                                <th style="padding: 10px;">Pořadí</th>
+                                <th style="padding: 10px;">Přezdívka</th>
+                                <th style="padding: 10px;">E-mail</th>
+                                <th style="padding: 10px; text-align: right;">Výsledný čas</th>
+                                <th style="padding: 10px; text-align: right;">Otočení</th>
+                                <th style="padding: 10px; text-align: center;">Akce</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pexesoLeaderboardRows">
+                            <tr><td colspan="6" style="padding: 20px; text-align: center; color: #64748b;">Načítám výsledky z databáze...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    `;
+
+    // Přepnutí záložky
+    document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+    document.getElementById("moderation-tab").classList.add("active");
+
+    // Načtení stavu checkboxu z Firebase
+    const checkbox = document.getElementById("chkRequireEmail");
+    try {
+        const { getDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+        const eventSnap = await getDoc(doc(db, "events", eventId));
+        if (eventSnap.exists()) {
+            const eventData = eventSnap.data();
+            if (eventData.pexesoSettings && checkbox) {
+                checkbox.checked = eventData.pexesoSettings.requireEmail === true;
+            }
+        }
+    } catch (e) { console.error(e); }
+
+    if (checkbox) {
+        checkbox.addEventListener("change", async (e) => {
+            const { updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+            await updateDoc(doc(db, "events", eventId), {
+                "pexesoSettings.requireEmail": e.target.checked
+            });
+        });
+    }
+
+    // LIVE SLEDOVÁNÍ TURNAJE
+    if (window.unsubscribePexesoLeaderboard) window.unsubscribePexesoLeaderboard();
+
+    const { query, collection, orderBy, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+    const leaderboardQuery = query(collection(db, "events", eventId, "pexeso_leaderboard"), orderBy("time", "asc"));
+
+    window.unsubscribePexesoLeaderboard = onSnapshot(leaderboardQuery, (snapshot) => {
+        const tbody = document.getElementById("pexesoLeaderboardRows");
+        if (!tbody) return;
+
+        tbody.innerHTML = "";
+        let position = 0;
+
+        if (snapshot.empty) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 30px; font-style: italic;">Zatím nikdo nedokončil hru. Buďte první!</td></tr>`;
+            return;
+        }
+
+        snapshot.forEach((docSnap) => {
+            position++;
+            if (position > 20) return;
+
+            const score = docSnap.data();
+            const tr = document.createElement("tr");
+            tr.style.borderBottom = "1px solid #1e293b";
+            tr.style.background = position <= 3 ? "rgba(236, 72, 153, 0.03)" : "transparent";
+
+            let medal = `${position}.`;
+            if (position === 1) medal = "🥇 1.";
+            if (position === 2) medal = "🥈 2.";
+            if (position === 3) medal = "🥉 3.";
+
+            tr.innerHTML = `
+                <td style="padding: 12px; font-weight: 700; color: ${position <= 3 ? '#ec4899' : '#94a3b8'};">${medal}</td>
+                <td style="padding: 12px; font-weight: 600; color: #fff;">${score.user}</td>
+                <td style="padding: 12px; color: #64748b;">${score.email || "---"}</td>
+                <td style="padding: 12px; font-weight: 700; color: #38bdf8; font-family: monospace; font-size: 0.95rem; text-align: right;">${score.time.toFixed(2)}s</td>
+                <td style="padding: 12px; color: #94a3b8; text-align: right;">${score.clicks || "---"}x</td>
+                <td style="padding: 12px; text-align: center;">
+                    <button onclick="window.deletePexesoScore('${eventId}', '${docSnap.id}')" style="background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 1rem; padding: 2px 8px;" title="Smazat výsledek">🗑️</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    });
+};
+
+window.deletePexesoScore = async function(eventId, scoreId) {
+    if (confirm("Chcete tento výsledek trvale smazat ze žebříčku?")) {
+        try {
+            const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+            await deleteDoc(doc(db, "events", eventId, "pexeso_leaderboard", scoreId));
+        } catch (e) { console.error(e); }
+    }
+};
+
+// =========================================================================
+// 🃏 PEXESO: SPRÁVA BALÍČKU KARET (RUB A 10 DVOJIC)
+// =========================================================================
+
+window.openPexesoDeck = async function(eventId, eventTitle) {
+    document.getElementById("pageTitle").textContent = `Balíček karet: ${eventTitle}`;
+    document.getElementById("pageSubtitle").textContent = "Nahrávání rubu (zadní strany) a 10 unikátních obrázků pro dvojice kartiček";
+
+    const container = document.getElementById("pendingPhotos");
+    if (!container) return;
+
+    // 🔥 NEPRŮSTŘELNÝ FIX SKRÝVÁNÍ PRO BALÍČEK:
+    const moderationZone = document.getElementById("moderationZone");
+    if (moderationZone) {
+        moderationZone.style.background = "transparent";
+        moderationZone.style.border = "none";
+        moderationZone.style.padding = "0";
+
+        const badHeader = moderationZone.querySelector("div");
+        if (badHeader) badHeader.style.display = "none";
+        
+        const badParagraph = moderationZone.querySelector(".subtitle-desc") || moderationZone.querySelector("p");
+        if (badParagraph) badParagraph.style.display = "none";
+    }
+
+    container.style.display = "block";
+    container.style.width = "100%";
+    container.style.maxWidth = "900px";
+    container.style.margin = "0 auto";
+    container.style.opacity = "1";
+
+    container.innerHTML = `
+        <div class="pexeso-deck-panel" style="background: #020617; padding: 25px; border-radius: 16px; border: 1px solid #1e293b; color: #fff; font-family: sans-serif; margin-top: 20px;">
+            
+            <div style="margin-bottom: 25px; border-bottom: 1px solid #1e293b; padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0 0 5px 0; font-size: 1.2rem; color: #38bdf8;">Konfigurace balíčku (Mřížka 4x5)</h3>
+                    <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Nahrajte celkem 11 obrázků. Systém z nich automaticky vygeneruje dvojice.</p>
+                </div>
+                <button id="btnSavePexesoDeck" style="background: #ec4899; color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 14px rgba(236, 72, 153, 0.3); transition: all 0.2s;">💾 Uložit balíček karet</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 2.5fr; gap: 25px;">
+                
+                <div style="background: #0f172a; padding: 15px; border-radius: 12px; border: 1px solid #1e293b; text-align: center; display: flex; flex-direction: column; justify-content: space-between; height: 260px;">
+                    <span style="font-size: 0.8rem; color: #ec4899; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;">ZADNÍ STRANA (RUB)</span>
+                    <div style="width: 120px; height: 150px; background: #020617; border: 2px dashed #334155; border-radius: 8px; margin: 10px auto; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+                        <img id="prev-pexeso-back" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                        <span id="label-pexeso-back" style="font-size: 0.7rem; color: #64748b;">Nahrát rub</span>
+                    </div>
+                    <input type="file" id="file-pexeso-back" accept="image/*" style="display: none;">
+                    <button onclick="document.getElementById('file-pexeso-back').click()" style="background: #1e293b; color: #fff; border: none; padding: 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; width: 100%;">Vybrat obrázek</button>
+                </div>
+
+                <div style="background: #0f172a; padding: 20px; border-radius: 12px; border: 1px solid #1e293b;">
+                    <span style="font-size: 0.8rem; color: #38bdf8; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; display: block; margin-bottom: 15px;">OBRÁZKY DVOJIC (LÍC - 10 KARTIČEK)</span>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
+                        ${Array.from({ length: 10 }).map((_, i) => `
+                            <div style="text-align: center; background: #020617; padding: 8px; border-radius: 8px; border: 1px solid #1e293b;">
+                                <span style="font-size: 0.65rem; color: #64748b; display: block; margin-bottom: 4px;">Karta ${i + 1}</span>
+                                <div style="width: 100%; aspect-ratio: 1/1; background: #090d16; border: 1px dashed #334155; border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 6px;">
+                                    <img id="prev-pexeso-front-${i}" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                                    <span id="label-pexeso-front-${i}" style="font-size: 1.2rem;">🖼️</span>
+                                </div>
+                                <input type="file" id="file-pexeso-front-${i}" accept="image/*" style="display: none;" class="pexeso-front-input" data-card-index="${i}">
+                                <button onclick="document.getElementById('file-pexeso-front-${i}').click()" style="background: #1e293b; color: #94a3b8; border: none; padding: 4px; border-radius: 4px; font-size: 0.65rem; cursor: pointer; width: 100%;">Nahrát</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    `;
+
+    document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+    document.getElementById("moderation-tab").classList.add("active");
+
+    let localFiles = { back: null, fronts: Array(10).fill(null) };
+    let remoteUrls = { back: "", fronts: Array(10).fill("") };
+
+    document.getElementById("file-pexeso-back").addEventListener("change", (e) => {
+        if (e.target.files && e.target.files[0]) {
+            localFiles.back = e.target.files[0];
+            document.getElementById("prev-pexeso-back").src = URL.createObjectURL(localFiles.back);
+            document.getElementById("prev-pexeso-back").style.display = "block";
+            document.getElementById("label-pexeso-back").style.display = "none";
+        }
+    });
+
+    document.querySelectorAll(".pexeso-front-input").forEach(input => {
+        input.addEventListener("change", (e) => {
+            const index = parseInt(input.dataset.cardIndex);
+            if (e.target.files && e.target.files[0]) {
+                localFiles.fronts[index] = e.target.files[0];
+                document.getElementById(`prev-pexeso-front-${index}`).src = URL.createObjectURL(localFiles.fronts[index]);
+                document.getElementById(`prev-pexeso-front-${index}`).style.display = "block";
+                document.getElementById(`label-pexeso-front-${index}`).style.display = "none";
+            }
+        });
+    });
+
+    try {
+        const { getDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+        const eventSnap = await getDoc(doc(db, "events", eventId));
+        if (eventSnap.exists()) {
+            const eventData = eventSnap.data();
+            if (eventData.pexesoSettings) {
+                const settings = eventData.pexesoSettings;
+                if (settings.backOfCardUrl) {
+                    remoteUrls.back = settings.backOfCardUrl;
+                    document.getElementById("prev-pexeso-back").src = settings.backOfCardUrl;
+                    document.getElementById("prev-pexeso-back").style.display = "block";
+                    document.getElementById("label-pexeso-back").style.display = "none";
+                }
+                if (settings.frontImages && Array.isArray(settings.frontImages)) {
+                    settings.frontImages.forEach((url, i) => {
+                        if (url && i < 10) {
+                            remoteUrls.fronts[i] = url;
+                            document.getElementById(`prev-pexeso-front-${i}`).src = url;
+                            document.getElementById(`prev-pexeso-front-${i}`).style.display = "block";
+                            document.getElementById(`label-pexeso-front-${i}`).style.display = "none";
+                        }
+                    });
+                }
+            }
+        }
+    } catch (e) { console.error("Chyba při načítání balíčku:", e); }
+
+    document.getElementById("btnSavePexesoDeck").addEventListener("click", async () => {
+        const btn = document.getElementById("btnSavePexesoDeck");
+        btn.textContent = "⏳ Optimalizace a nahrávání...";
+        btn.disabled = true;
+
+        try {
+            const { ref, uploadBytes, getDownloadURL } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js");
+            const { updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+
+            const compressEngine = async function(file) {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = (ev) => {
+                        const img = new Image();
+                        img.src = ev.target.result;
+                        img.onload = () => {
+                            const canvas = document.createElement("canvas");
+                            canvas.width = 500; canvas.height = 500;
+                            const ctx = canvas.getContext("2d");
+                            const size = Math.min(img.width, img.height);
+                            const sx = (img.width - size) / 2; const sy = (img.height - size) / 2;
+                            ctx.drawImage(img, sx, sy, size, size, 0, 0, 500, 500);
+                            canvas.toBlob((blob) => {
+                                resolve(new File([blob], file.name, { type: "image/jpeg" }));
+                            }, "image/jpeg", 0.80);
+                        };
+                    };
+                });
+            };
+
+            if (localFiles.back) {
+                const optimizedBack = await compressEngine(localFiles.back);
+                const ext = optimizedBack.name.split('.').pop();
+                const snap = await uploadBytes(ref(storage, `pexeso/${eventId}/back_${Date.now()}.${ext}`), optimizedBack);
+                remoteUrls.back = await getDownloadURL(snap.ref);
+            }
+
+            for (let i = 0; i < 10; i++) {
+                if (localFiles.fronts[i]) {
+                    const optimizedFront = await compressEngine(localFiles.fronts[i]);
+                    const ext = optimizedFront.name.split('.').pop();
+                    const snap = await uploadBytes(ref(storage, `pexeso/${eventId}/card_${i}_${Date.now()}.${ext}`), optimizedFront);
+                    remoteUrls.fronts[i] = await getDownloadURL(snap.ref);
+                }
+            }
+
+            await updateDoc(doc(db, "events", eventId), {
+                "pexesoSettings.backOfCardUrl": remoteUrls.back,
+                "pexesoSettings.frontImages": remoteUrls.fronts
+            });
+
+            alert("🎉 Balíček byl bleskově zkomprimován na 500x500px a úspěšně uložen!");
+            window.filterEventsByModule('pexeso');
+
+        } catch (err) {
+            console.error(err);
+            alert("Chyba při nahrávání balíčku: " + err.message);
+        } finally {
+            btn.textContent = "💾 Uložit balíček karet";
+            btn.disabled = false;
+        }
+    });
+};

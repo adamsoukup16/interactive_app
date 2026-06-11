@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pexeso Leaderboard - Živé vysílání 16:9</title>
+    <link rel="stylesheet" href="../wall/wall.css"> 
+</head>
+<body style="margin: 0; padding: 0; box-sizing: border-box; background: #05070f; overflow: hidden; height: 100vh; font-family: sans-serif;">
+
+    <div id="pexesoWallZone" style="width: 100%; height: 100vh; display: flex; flex-direction: column; justify-content: space-between; padding: 40px; box-sizing: border-box;">
+        
+        <div id="pexesoWallHeader" style="text-align: center; margin-bottom: 20px;">
+            <h1 id="pexesoWallTitle" style="color: #fff; font-size: 3.5rem; margin: 0 0 10px 0; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 4px 20px rgba(0,0,0,0.6);">🏆 TURNAJ V PEXESU</h1>
+            <p id="pexesoWallSubtitle" style="color: #a78bfa; font-size: 1.5rem; margin: 0; font-weight: 600; letter-spacing: 0.5px; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">Naskenujte QR kód a překonejte nejlepší čas!</p>
+        </div>
+
+        <div class="leaderboard-board" style="flex-grow: 1; background: rgba(11, 15, 26, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 2px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 30px; box-shadow: 0 30px 60px rgba(0,0,0,0.8); overflow: hidden; width: 100%; max-width: 1200px; margin: 0 auto; box-sizing: border-box; display: flex; flex-direction: column;">
+            <div style="display: grid; grid-template-columns: 0.8fr 2.5fr 1.2fr 1.2fr; padding-bottom: 15px; border-bottom: 3px solid #1e293b; color: #94a3b8; font-size: 1.1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding-left: 20px;">
+                <div>Pozice</div>
+                <div>Soutěžící</div>
+                <div style="text-align: right;">Rychlost</div>
+                <div style="text-align: right;">Otočení</div>
+            </div>
+            
+            <div id="pexesoWallRows" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px; overflow: hidden; flex-grow: 1;">
+                <div style="color: #64748b; font-style: italic; text-align: center; padding: 100px; font-size: 1.5rem;">Čekám na první herní výsledky...</div>
+            </div>
+        </div>
+
+        <div id="pexesoWallFooter" style="height: 120px; display: flex; justify-content: center; align-items: center; margin-top: 25px; width: 100%;">
+            <div id="wallCenterZone" class="wall-center-branding-zone" style="display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; width: 100%; max-width: 1200px; height: 100%;">
+                <div id="wallLiveQr" class="brand-component-box"></div>
+                <div id="wallLiveLogoContainer" class="brand-component-box">
+                    <img id="clientLogo" src="" alt="Client Logo" style="display: none; max-height: 80px; object-fit: contain;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="wall_pexeso.js"></script>
+</body>
+</html>

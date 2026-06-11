@@ -46,9 +46,11 @@ async function initClient() {
             });
             console.log("📈 Počítadlo připojení aktualizováno (+1).");
 
-            // Aktualizace textů v hlavičce mobilní stránky
+            // Nahoře v hlavičce mobilní stránky necháme POUZE čisté jméno eventu
             document.getElementById("eventTitle").textContent = eventData.title;
-            document.getElementById("eventStatus").textContent = "🟢 Jste připojeni k zápasu";
+            
+            // 🔥 FIX: Odstraněno "🟢 Jste připojeni k zápasu" pro modernější, čistší design
+            document.getElementById("eventStatus").innerHTML = ""; 
 
             // 5. DYNAMICKÝ IMPORT HRY: Načteme herní modul podle toho, co vybral admin (např. social_watch)
             loadGameModule(eventData.activeGame, eventId);
@@ -89,7 +91,7 @@ async function loadGameModule(gameType, eventId) {
 }
 
 // --- ⚡ 6. EXKLUZIVNÍ GLOBÁLNÍ FUNKCE PRO HARDWAROVÝ RESIZE FOTEK (MAX 1MB / ~200KB) ---
-// Tuto funkci nyní můžeš zavolat z jakéhokoliv klientského modulu (např. z games/social_watch/client.js) pomocí window.resizeAndCompressImage()
+// Tuto funkcionalitu volá modul z games/social_watch/client.js pomocí window.resizeAndCompressImage()
 window.resizeAndCompressImage = function(file, maxWidth = 1200, maxHeight = 1200, quality = 0.75) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();

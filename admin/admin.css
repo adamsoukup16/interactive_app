@@ -562,3 +562,47 @@ tr:hover { background-color: #1e293b; }
 /* Pozicování přezdívek v simulátoru */
 .sim-slot-sq.nick-top { justify-content: flex-start; }
 .sim-slot-sq.nick-bottom { justify-content: flex-end; }
+
+/* Moderní mřížka s 5 sloupci vedle sebe */
+.moderation-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+    padding: 10px 0;
+}
+
+/* Kompaktní karta s fotkou */
+.moderation-card {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+/* Zmenšený kontejner pro náhled fotky (čtverec 1:1) */
+.moderation-thumb-wrapper {
+    position: relative;
+    width: 100%;
+    padding-top: 100%; /* Dokonalý čtverec */
+    background: #020617;
+}
+
+.moderation-thumb-wrapper img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Třída pro plynulé smazání karty bez probliknutí zbytku webu */
+.card-fade-out {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+    pointer-events: none;
+}

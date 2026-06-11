@@ -371,3 +371,4 @@ function restartRotationEngine() {
         }
     }, currentIntervalDuration);
 }
+
