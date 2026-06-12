@@ -161,9 +161,15 @@ window.filterEventsByModule = function(moduleName) {
     const mainAllBtn = document.getElementById("menu-sub-all");
     if (mainAllBtn) mainAllBtn.classList.add("active");
 
-    // 2. Rozsvítíme konkrétní podsložku a změníme podnadpis stránky
+    // 🔥 NOVÉ: Zacílení na hlavičku tabulky v HTML
+    const eventsTableHead = document.getElementById("eventsTableHead");
+
+    // 2. Rozsvítíme konkrétní podsložku a dynamicky změníme texty v záhlaví tabulky
     if (moduleName === "all") {
         document.getElementById("pageSubtitle").textContent = "Kompletní přehled, statistiky a úprava běžících akcí";
+        if (eventsTableHead) {
+            eventsTableHead.innerHTML = `<th>Název akce</th><th>Modul</th><th>👥 Připojení</th><th>📊 Statistiky / Detaily</th><th>📱 Přístupy</th><th style="text-align: right;">Akce</th>`;
+        }
     } else if (moduleName === "social_watch") {
         const subSocial = document.getElementById("menu-sub-social");
         if (subSocial) {
@@ -172,6 +178,9 @@ window.filterEventsByModule = function(moduleName) {
             subSocial.style.fontWeight = "bold";
         }
         document.getElementById("pageSubtitle").textContent = "Správa aktivních multimediálních fotostěn (Social Wall)";
+        if (eventsTableHead) {
+            eventsTableHead.innerHTML = `<th>Název akce</th><th>Modul</th><th>👥 Připojení</th><th>📊 Statistiky fotek</th><th>📱 Přístupy</th><th style="text-align: right;">Akce</th>`;
+        }
     } else if (moduleName === "kviz") {
         const subKviz = document.getElementById("menu-sub-kviz");
         if (subKviz) {
@@ -180,6 +189,9 @@ window.filterEventsByModule = function(moduleName) {
             subKviz.style.fontWeight = "bold";
         }
         document.getElementById("pageSubtitle").textContent = "Správa interaktivních kvízů a otázek pro diváky";
+        if (eventsTableHead) {
+            eventsTableHead.innerHTML = `<th>Název akce</th><th>Modul</th><th>👥 Připojení</th><th>📊 Stav modulu</th><th>📱 Přístupy</th><th style="text-align: right;">Akce</th>`;
+        }
     } else if (moduleName === "pexeso") {
         const subPexeso = document.getElementById("menu-sub-pexeso");
         if (subPexeso) {
@@ -188,20 +200,20 @@ window.filterEventsByModule = function(moduleName) {
             subPexeso.style.fontWeight = "bold";
         }
         document.getElementById("pageSubtitle").textContent = "Správa herních turnajů v digitálním pexesu";
+        // 🔥 ZDE JE KLÍČOVÁ ZMĚNA: Přepíšeme záhlaví tabulky specificky pro pexeso
+        if (eventsTableHead) {
+            eventsTableHead.innerHTML = `<th>Název akce</th><th>Modul</th><th>👥 Připojení</th><th>📊 Herní vizuál & GDPR</th><th>📱 Přístupy</th><th style="text-align: right;">Akce</th>`;
+        }
     }
 
-    // 3. Natvrdo schováme ostatní sekce a ROZSVÍTÍME velkou tabulku s eventy
+    // 3. Natvrdo schováme ostatní sekce a rozsvítíme list-tab s tabulkou
     document.querySelectorAll(".tab-content").forEach(tab => tab.classList.remove("active"));
-    
-    // Pojistka pro přesné ID tvé sekce s tabulkou
-    const eventsTab = document.getElementById("events-tab") || document.getElementById("list-tab") || document.querySelector('[data-tab="events-tab"]');
-    if (eventsTab) {
-        eventsTab.classList.add("active");
-    }
+    const eventsTab = document.getElementById("events-tab") || document.getElementById("list-tab");
+    if (eventsTab) eventsTab.classList.add("active");
 
     document.getElementById("pageTitle").textContent = "Moje eventy";
 
-    // 4. Bleskově překreslíme řádky podle nového filtru
+    // 4. Překreslíme řádky tabulky
     if (typeof window.refreshEventsTable === "function") {
         window.refreshEventsTable();
     }
@@ -243,26 +255,20 @@ window.refreshEventsTable = function() {
 
         visibleRowsCount++;
 
-        // 🔥 TADY JE TA ZMĚNA:
-        // 1. Výpočet základní URL adresy projektu (pro lokál i GitHub)
-        // 1. Výpočet základní URL adresy projektu (pro lokál i GitHub)
         const pathSegments = window.location.pathname.split('/');
         const adminIndex = pathSegments.indexOf('admin');
         const repoPath = adminIndex > 0 ? pathSegments.slice(0, adminIndex).join('/') : '';
         const projectBaseUrl = `${window.location.origin}${repoPath}`;
 
-        // 2. 🔥 DEFINICE VŠECH CEST (Oprava smazaných proměnných)
         const publicUrl = `${projectBaseUrl}/public/index.html?event=${id}`;
         const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(publicUrl)}`;
         const scans = event.scanCount || 0;
 
-        // Výběr správné složky pro plátno podle aktivní hry
         let wallUrl = `${projectBaseUrl}/wall/index.html?event=${id}`;
         if (event.activeGame === "pexeso") {
             wallUrl = `${projectBaseUrl}/wall_pexeso/index.html?event=${id}`;
         }
 
-        // Načteme si statistiky z paměti, pokud už je máme stažené
         const stats = window.cachedStats[id] || { total: 0, approved: 0, pending: 0, rejected: 0 };
 
         let actionButtons = "";
@@ -283,6 +289,36 @@ window.refreshEventsTable = function() {
             `;
         }
 
+        // 🔥 DYNAMICKÁ ZMĚNA OBSAHU SLOUPCE STATISTIK PODLE TYPU HRY
+        let statsColumnContent = "";
+        if (event.activeGame === "pexeso") {
+            const pSettings = event.pexesoSettings || {};
+            const requireFields = [];
+            if (pSettings.requireEmail) requireFields.push("Email");
+            if (pSettings.requirePhone) requireFields.push("Telefon");
+            if (pSettings.requireSeat) requireFields.push("Sedadlo");
+            const fieldsStr = requireFields.length > 0 ? requireFields.join(", ") : "Pouze přezdívka";
+
+            statsColumnContent = `
+                <div class="pexeso-stats-container" style="display:flex; flex-direction:column; gap:4px; font-size:0.8rem; color:#94a3b8;">
+                    <div>🎨 Pozadí: <span style="font-weight:700; color:#34d399; font-family:monospace;">${pSettings.colorBg || "#020617"}</span></div>
+                    <div>🃏 Karta: <span style="font-weight:700; color:#38bdf8; font-family:monospace;">${pSettings.colorForm || "#0f172a"}</span></div>
+                    <div>📋 Sběr dat: <span style="font-weight:700; color:#eab308;">${fieldsStr}</span></div>
+                    <div>⚖️ GDPR souhlas: <span style="font-weight:700; color:${pSettings.requireGdpr ? "#a78bfa" : "#64748b"};">${pSettings.requireGdpr ? "🟢 AKTIVNÍ" : "🔴 VYPNUTÝ"}</span></div>
+                </div>
+            `;
+        } else {
+            // Výchozí vzhled statistik pro Social Wall (Fotostěnu)
+            statsColumnContent = `
+                <div class="stats-container" id="stats-${id}" style="display:flex; flex-direction:column; gap:4px; font-size:0.8rem;">
+                    <div class="stat-line" style="color:#fff;"><span class="stat-dot total" style="display:inline-block; width:8px; height:8px; background:#94a3b8; border-radius:50%; margin-right:6px;"></span> Celkem: <span id="total-${id}" style="font-weight:700;">${stats.total}</span></div>
+                    <div class="stat-line" style="color:#10b981;"><span class="stat-dot approved" style="display:inline-block; width:8px; height:8px; background:#10b981; border-radius:50%; margin-right:6px;"></span> Schválené: <span id="approved-${id}" style="font-weight:700;">${stats.approved}</span></div>
+                    <div class="stat-line" style="color:#eab308;"><span class="stat-dot pending" style="display:inline-block; width:8px; height:8px; background:#eab308; border-radius:50%; margin-right:6px;"></span> Čeká: <span id="pending-${id}" style="font-weight:700;">${stats.pending}</span></div>
+                    <div class="stat-line" style="color:#ef4444;"><span class="stat-dot rejected" style="display:inline-block; width:8px; height:8px; background:#ef4444; border-radius:50%; margin-right:6px;"></span> Zamítnuté: <span id="rejected-${id}" style="font-weight:700;">${stats.rejected}</span></div>
+                </div>
+            `;
+        }
+
         const tr = document.createElement("tr");
         tr.id = `row-${id}`;
         tr.innerHTML = `
@@ -298,12 +334,7 @@ window.refreshEventsTable = function() {
                 </div>
             </td>
             <td>
-                <div class="stats-container" id="stats-${id}" style="display:flex; flex-direction:column; gap:4px; font-size:0.8rem;">
-                    <div class="stat-line" style="color:#fff;"><span class="stat-dot total" style="display:inline-block; width:8px; height:8px; background:#94a3b8; border-radius:50%; margin-right:6px;"></span> Celkem: <span id="total-${id}" style="font-weight:700;">${stats.total}</span></div>
-                    <div class="stat-line" style="color:#10b981;"><span class="stat-dot approved" style="display:inline-block; width:8px; height:8px; background:#10b981; border-radius:50%; margin-right:6px;"></span> Schválené: <span id="approved-${id}" style="font-weight:700;">${stats.approved}</span></div>
-                    <div class="stat-line" style="color:#eab308;"><span class="stat-dot pending" style="display:inline-block; width:8px; height:8px; background:#eab308; border-radius:50%; margin-right:6px;"></span> Čeká: <span id="pending-${id}" style="font-weight:700;">${stats.pending}</span></div>
-                    <div class="stat-line" style="color:#ef4444;"><span class="stat-dot rejected" style="display:inline-block; width:8px; height:8px; background:#ef4444; border-radius:50%; margin-right:6px;"></span> Zamítnuté: <span id="rejected-${id}" style="font-weight:700;">${stats.rejected}</span></div>
-                </div>
+                ${statsColumnContent}
             </td>
             <td>
                 <div class="access-cell" style="display:flex; align-items:center; gap:10px;">
@@ -320,8 +351,8 @@ window.refreshEventsTable = function() {
         `;
         tbody.appendChild(tr);
 
-        // Vždy bezpečně nastartujeme nebo obnovíme napojení na Firebase live sledování
-        if (!activePhotoListeners[id]) {
+        // Živého posluchače fotek zapínáme výhradně pro modul Social Wall
+        if (event.activeGame === "social_watch" && !activePhotoListeners[id]) {
             startIndividualPhotoListener(id); 
         }
     });

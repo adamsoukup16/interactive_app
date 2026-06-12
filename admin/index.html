@@ -106,17 +106,16 @@
                         <div class="table-responsive">
                             <table class="modern-table">
                                 <thead>
-                                    <tr>
+                                    <tr id="eventsTableHead">
                                         <th>Název akce</th>
                                         <th>Modul</th>
                                         <th>👥 Připojení</th>
-                                        <th>📊 Statistiky fotek</th>
+                                        <th>📊 Statistiky / Detaily</th>
                                         <th>📱 Přístupy</th>
                                         <th style="text-align: right;">Akce</th>
                                     </tr>
                                 </thead>
-                                <tbody id="eventsTableBody">
-                                    </tbody>
+                                <tbody id="eventsTableBody"></tbody>
                             </table>
                         </div>
                     </div>
@@ -137,11 +136,10 @@
                         </div>
 
                         <p class="subtitle-desc" style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 20px; margin-top: -10px;">
-                            💡 **Vysvětlivky:** Fotky se z databáze nikdy nemažou. Můžeš libovolně měnit jejich stavy, upravovat nevhodné přezdívky nebo vynutit anonymizaci.
+                            💡 **Vysvětlivky:** Stavy můžete libovolně měnit, upravovat nevhodné přezdívky nebo konfigurovat herní prostředí turnaje na míru.
                         </p>
                         
-                        <div id="pendingPhotos" class="photo-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
-                            </div>
+                        <div id="pendingPhotos" class="photo-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;"></div>
                     </div>
                 </section>
 
