@@ -17,7 +17,7 @@ let colorBtnStartBg = "#38bdf8"; let colorBtnStartText = "#ffffff";
 
 let colorIntroTitle = "#ffffff"; let colorIntroSubtitle = "#94a3b8";
 let colorLabelUser = "#ffffff"; let colorLabelEmail = "#ffffff"; let colorLabelPhone = "#ffffff";
-let colorSeatLabels = "#ffffff"; let colorOutroText = "#e2e8f0"; let colorGdprText = "#38bdf8";
+let colorSeatLabels = "#ffffff"; let colorOutroText = "#e2e8f0"; colorGdprText = "#38bdf8";
 
 const DEFAULT_CARD_BACK = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&q=80";
 const DEFAULT_CARD_FRONTS = ["🍎", "🍌", "🍒", "🍇", "🍊", "🍉", "🍓", "🍍", "🥑", "🥝"];
@@ -28,13 +28,16 @@ export async function init(eventId) {
     // Pomocná funkce pro hardwarový preloading obrázků do cache prohlížeče
     const preloadImage = (url) => {
         return new Promise((resolve) => {
-            if (!url) return resolve();
+            if (!url || !url.startsWith("http")) return resolve();
             const img = new Image();
             img.src = url;
             img.onload = () => resolve();
             img.onerror = () => resolve(); // Pokud by odkaz selhal, nezasekneme hru
         });
     };
+
+    let cardBack = DEFAULT_CARD_BACK; 
+    let cardFronts = [...DEFAULT_CARD_FRONTS];
 
     // 1. STAŽENÍ KOMPLETNÍ KONFIGURACE A BAREV Z FIRESTORE
     try {
@@ -56,25 +59,32 @@ export async function init(eventId) {
             colorIntroTitle = s.colorIntroTitle || "#ffffff"; colorIntroSubtitle = s.colorIntroSubtitle || "#94a3b8";
             colorLabelUser = s.colorLabelUser || "#ffffff"; colorLabelEmail = s.colorLabelEmail || "#ffffff"; colorLabelPhone = s.colorLabelPhone || "#ffffff";
             colorSeatLabels = s.colorSeatLabels || "#ffffff"; colorOutroText = s.colorOutroText || "#e2e8f0"; colorGdprText = s.colorGdprText || "#38bdf8";
+
+            if (s.backOfCardUrl) cardBack = s.backOfCardUrl;
+            if (s.frontImages && s.frontImages.filter(Boolean).length === 10) cardFronts = s.frontImages;
         }
     } catch (e) { console.error(e); }
 
-    // Aktualizujeme stav v preloaderu z public.js (pokud tam zrovna svítí)
+    // Aktualizujeme stav v preloaderu z public.js
     const tEl = document.getElementById("preloaderText");
     const pEl = document.getElementById("preloaderPercent");
-    if (tEl) tEl.textContent = "Loading...";
-    if (pEl) pEl.textContent = "98%";
+    if (tEl) tEl.textContent = "Optimalizuji a stahuji hrací balíček karet...";
+    if (pEl) pEl.textContent = "85%";
 
-    // 🔥 NEVÍDITELNÝ PRELOAD OBRÁZKŮ (Pozadí + rub karet) před startem
-    const currentCardBack = (typeof pexesoSettings !== 'undefined' && pexesoSettings.backOfCardUrl) || DEFAULT_CARD_BACK;
-    await Promise.all([
-        preloadImage(bgImageUrl),
-        preloadImage(currentCardBack),
-        preloadImage(partnerLogoUrl)
-    ]);
+    // 🔥 NOVÉ: AGRESIVNÍ PRELOAD ABSOLUTNĚ VŠECH OBRÁZKŮ DO CACHE TELEFONU (Pozadí + Rub + 10 Líců)
+    const imagesToPreload = [preloadImage(bgImageUrl), preloadImage(cardBack), preloadImage(partnerLogoUrl)];
+    cardFronts.forEach(url => {
+        if (url && url.startsWith("http")) imagesToPreload.push(preloadImage(url));
+    });
+    
+    // Počkáme, až se stáhnou úplně všechny obrázky, aby se už nic pomalu nenačítalo
+    await Promise.all(imagesToPreload);
 
-    // Nastavení stylů zóny (Obrázky už jsou stažené, takže naskočí okamžitě v jedné milisekundě)
-    gameZone.style.setProperty("background-color", colorBg, "important");
+    if (pEl) pEl.textContent = "99%";
+
+    // Základní nastavení herní zóny (Vše transparentní, podřízené novému fixnímu pozadí)
+    gameZone.style.setProperty("background-color", "transparent", "important");
+    gameZone.style.setProperty("background-image", "none", "important");
     gameZone.style.setProperty("min-height", "100vh", "important");
     gameZone.style.setProperty("width", "100%", "important");
     gameZone.style.setProperty("margin", "0", "important");
@@ -84,22 +94,33 @@ export async function init(eventId) {
     gameZone.style.setProperty("flex-direction", "column", "important");
     gameZone.style.setProperty("justify-content", "center", "important");
     gameZone.style.setProperty("align-items", "center", "important");
+    gameZone.style.setProperty("position", "relative", "important");
+    gameZone.style.setProperty("z-index", "1", "important");
 
-    if (bgImageUrl) {
-        gameZone.style.setProperty("background-image", `url('${bgImageUrl}')`, "important");
-        gameZone.style.setProperty("background-size", "cover", "important");
-        gameZone.style.setProperty("background-position", "center", "important");
-        gameZone.style.setProperty("background-repeat", "no-repeat", "important");
-        gameZone.style.setProperty("background-attachment", "fixed", "important");
-    } else { 
-        gameZone.style.setProperty("background-image", "none", "important"); 
+    // 🔥 REVOLUČNÍ FIX POZADÍ: Vytvoříme speciální podkladový div, který Safari nedeformuje
+    let bgLayer = document.getElementById("pexesoMobileBgLayer");
+    if (!bgLayer) {
+        bgLayer = document.createElement("div");
+        bgLayer.id = "pexesoMobileBgLayer";
+        document.body.appendChild(bgLayer);
     }
+    bgLayer.style = `
+        position: fixed !important;
+        inset: 0 !important;
+        z-index: 0 !important;
+        background-color: ${colorBg} !important;
+        background-image: ${bgImageUrl ? `url('${bgImageUrl}')` : 'none'} !important;
+        background-size: cover !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        pointer-events: none !important;
+    `;
 
-    renderRegistrationScreen(gameZone, eventId);
+    renderRegistrationScreen(gameZone, eventId, cardBack, cardFronts);
 }
 
 // --- 👤 FÁZE 1: REGISTRAČNÍ FORMULÁŘ ---
-function renderRegistrationScreen(container, eventId) {
+function renderRegistrationScreen(container, eventId, cardBack, cardFronts) {
     container.innerHTML = `
         <div class="pexeso-setup" style="box-sizing:border-box; width:100%; max-width:400px; margin:0 auto; padding:10px; font-family:sans-serif; text-align:center;">
             
@@ -126,11 +147,11 @@ function renderRegistrationScreen(container, eventId) {
 
                 <div id="pexesoPhoneWrapper" style="display: ${requirePhone ? 'block' : 'none'};">
                     <label style="display:block; color:${colorLabelPhone}; font-size:0.75rem; font-weight:700; margin-bottom:5px; text-transform:uppercase;">${labelPhone}</label>
-                    <input type="tel" id="pexesoPhone" placeholder="..." style="box-sizing:border-box; width:100%; padding:12px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); color:#fff; border-radius:8px; font-size:1rem; outline:none;">
+                    <input type="tel" id="pexesoPhone" placeholder="+420..." style="box-sizing:border-box; width:100%; padding:12px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); color:#fff; border-radius:8px; font-size:1rem; outline:none;">
                 </div>
 
                 <div id="pexesoSeatWrapper" style="display: ${requireSeat ? 'block' : 'none'};">
-                    <label style="display:block; color:${colorSeatLabels}; font-size:0.75rem; font-weight:700; margin-bottom:5px; text-transform:uppercase;">VAŠE MÍSTO *</label>
+                    <label style="display:block; color:${colorSeatLabels}; font-size:0.75rem; font-weight:700; margin-bottom:5px; text-transform:uppercase;">💺 Usazení</label>
                     <div style="display:flex; gap:8px;">
                         <input type="text" id="pexesoSector" placeholder="${seatLabel1}" style="width:33%; box-sizing:border-box; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); padding:10px; border-radius:8px; color:#fff; font-size:0.9rem; text-align:center;">
                         <input type="text" id="pexesoRow" placeholder="${seatLabel2}" style="width:33%; box-sizing:border-box; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); padding:10px; border-radius:8px; color:#fff; font-size:0.9rem; text-align:center;">
@@ -154,7 +175,7 @@ function renderRegistrationScreen(container, eventId) {
         </div>
     `;
 
-    if (gdprText) document.getElementById("btnShowGdprPopup").addEventListener("click", () => alert(`GDPR:\n\n${gdprText}`));
+    if (gdprText) document.getElementById("btnShowGdprPopup").addEventListener("click", () => alert(`⚖️ GDPR / PODMÍNKY:\n\n${gdprText}`));
 
     document.getElementById("btnStartPexeso").addEventListener("click", async () => {
         const userEl = document.getElementById("pexesoUser"); const emailEl = document.getElementById("pexesoEmail"); const phoneEl = document.getElementById("pexesoPhone");
@@ -171,23 +192,13 @@ function renderRegistrationScreen(container, eventId) {
         if (requireGdpr && gdprEl && !gdprEl.checked) { errorEl.textContent = "⚠️ Potvrďte souhlas s podmínkami!"; return; }
 
         btn.disabled = true; btn.textContent = "...";
-        startPexesoGame(container, eventId, { username, email, phone, sector, row, seat });
+        startPexesoGame(container, eventId, { username, email, phone, sector, row, seat }, cardBack, cardFronts);
     });
 }
 
 // --- 🎮 FÁZE 2: SAMOTNÁ HRA ---
-async function startPexesoGame(container, eventId, extraData) {
+function startPexesoGame(container, eventId, extraData, cardBack, cardFronts) {
     elapsedTime = 0; matchedPairs = 0; totalClicks = 0; flippedCards = []; lockBoard = false;
-    let cardBack = DEFAULT_CARD_BACK; let cardFronts = [...DEFAULT_CARD_FRONTS];
-
-    try {
-        const eventSnap = await getDoc(doc(db, "events", eventId));
-        if (eventSnap.exists() && eventSnap.data().pexesoSettings) {
-            const s = eventSnap.data().pexesoSettings;
-            if (s.backOfCardUrl) cardBack = s.backOfCardUrl;
-            if (s.frontImages && s.frontImages.filter(Boolean).length === 10) cardFronts = s.frontImages;
-        }
-    } catch (e) { console.error(e); }
 
     let deck = [...cardFronts, ...cardFronts]; deck.sort(() => Math.random() - 0.5);
 
@@ -231,10 +242,10 @@ async function startPexesoGame(container, eventId, extraData) {
         const timerEl = document.getElementById("pexesoTimer"); if (timerEl) timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
     }, 40);
 
-    document.querySelectorAll(".pexeso-card").forEach(card => card.addEventListener("click", () => handleCardClick(card, container, eventId, extraData)));
+    document.querySelectorAll(".pexeso-card").forEach(card => card.addEventListener("click", () => handleCardClick(card, container, eventId, extraData, cardBack, cardFronts)));
 }
 
-function handleCardClick(card, container, eventId, extraData) {
+function handleCardClick(card, container, eventId, extraData, cardBack, cardFronts) {
     if (lockBoard || card.classList.contains("flipped") || card.classList.contains("matched")) return;
     totalClicks++; const liveClicksEl = document.getElementById("liveClicksCount"); if (liveClicksEl) liveClicksEl.textContent = totalClicks;
 
@@ -263,7 +274,7 @@ async function finishPexesoGame(container, eventId, extraData) {
             ` : '<h1>🏆</h1>'}
 
             <h2 style="color:#10b981; margin:10px 0 5px 0; font-size:1.8rem; font-weight:900; text-transform:uppercase;">Done!</h2>
-            <p style="color:#fff; opacity:0.7; font-size:0.85rem; margin-bottom:20px;">Congrats!</p>
+            <p style="color:#fff; opacity:0.7; font-size:0.85rem; margin-bottom:20px;">Tvůj výsledek se ukládá do cloudu...</p>
             
             <div style="background:${colorForm}; border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:20px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
                 <div style="font-size:2.4rem; font-weight:900; color:#38bdf8; font-family:monospace; margin-bottom:8px;">${elapsedTime.toFixed(2)}s</div>
