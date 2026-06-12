@@ -857,79 +857,236 @@ function generateQRCode(text) { document.getElementById("qrcode").innerHTML = `<
 
 
 
-
-
-
-
 // =========================================================================
-// 🧩 MODUL: DIGITÁLNÍ PEXESO (100% ODDĚLENÁ HRA)
+// 🧩 MODUL: DIGITÁLNÍ PEXESO (ULTIMÁTNÍ NUCENÝ RENDER V8.2 - FIX AUTOSAVE)
 // =========================================================================
-
 window.openPexesoControl = async function(eventId, eventTitle) {
-    // 1. Nastavení textů v hlavní hlavičce CorePanelu
-    document.getElementById("pageTitle").textContent = `Pexeso: ${eventTitle}`;
-    document.getElementById("pageSubtitle").textContent = "Správa herního turnaje, nastavení e-mailů a výsledky diváků";
+    console.log("🏁 HARD-START: Vynucené spuštění openPexesoControl V8.2 pro event:", eventId, eventTitle);
 
-    const container = document.getElementById("pendingPhotos");
-    if (!container) return;
+    let _doc, _getDoc, _updateDoc, _query, _collection, _orderBy, _onSnapshot, _ref, _uploadBytes, _getDownloadURL;
+    let firestoreInstance = typeof db !== "undefined" ? db : window.db;
+    let storageInstance = typeof storage !== "undefined" ? storage : window.storage;
+    
+    // 🔥 FIX: Definuje časovač pro autosave na nejvyšší úrovni funkce, aby byl dostupný všude
+    let typingTimer = null;
 
-    // 🔥 NEPRŮSTŘELNÝ FIX SKRÝVÁNÍ:
-    // Najdeme ten otravný vnitřní header fotostěny, který je přímo v zóně moderování a schováme ho
-    const moderationZone = document.getElementById("moderationZone");
-    if (moderationZone) {
-        moderationZone.style.background = "transparent"; // Odstraníme tmavé pozadí z fotostěny, ať pexeso sedí čistě
-        moderationZone.style.border = "none";
-        moderationZone.style.padding = "0";
-
-        // Vyhledáme první vnitřní div (to bývá ta lišta s LIVE MODERACE a vysvětlivkami) a schováme je
-        const badHeader = moderationZone.querySelector("div");
-        if (badHeader) badHeader.style.display = "none";
-        
-        const badParagraph = moderationZone.querySelector(".subtitle-desc") || moderationZone.querySelector("p");
-        if (badParagraph) badParagraph.style.display = "none";
+    // 1. IMPORT METOD Z CDN
+    try {
+        const fModules = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+        const sModules = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js");
+        _doc = fModules.doc; _getDoc = fModules.getDoc; _updateDoc = fModules.updateDoc; _query = fModules.query; _collection = fModules.collection; _orderBy = fModules.orderBy; _onSnapshot = fModules.onSnapshot;
+        _ref = sModules.ref; _uploadBytes = sModules.uploadBytes; _getDownloadURL = sModules.getDownloadURL;
+    } catch (err) {
+        alert("Chyba CDN importu: " + err.message);
+        return;
     }
 
-    // Vynutíme, aby náš pexeso kontejner byl stoprocentně vidět hned nahoře!
-    container.style.display = "block";
-    container.style.width = "100%";
-    container.style.maxWidth = "1100px";
-    container.style.margin = "0 auto";
-    container.style.opacity = "1"; // Pojistka proti skrytí
+    if (!firestoreInstance) {
+        alert("Chyba: Firestore (db) není inicializován.");
+        return;
+    }
+
+    // 2. BRUTÁLNÍ VYČIŠTĚNÍ CELÉ STRÁNKY (Hard reset staré fotostěny)
+    let mainZone = document.getElementById("moderationZone") || document.getElementById("mainContent") || document.body;
     
-    // Vygenerujeme čisté herní manažerské prostředí
+    console.log("🎯 Čistím zónu:", mainZone);
+    mainZone.innerHTML = `<div id="vynucenyPexesoContainer" style="width:100%; max-width:1200px; margin:0 auto; padding:20px; display:block !important; visibility:visible !important; opacity:1 !important;"></div>`;
+    
+    const container = document.getElementById("vynucenyPexesoContainer");
+
+    const pageTitleEl = document.getElementById("pageTitle");
+    const pageSubtitleEl = document.getElementById("pageSubtitle");
+    if (pageTitleEl) pageTitleEl.textContent = `Pexeso: ${eventTitle}`;
+    if (pageSubtitleEl) pageSubtitleEl.textContent = "Správa herního turnaje, kompletní lokalizace textů a správa barev";
+
+    const tabEl = document.getElementById("moderation-tab");
+    if (tabEl) {
+        document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+        tabEl.classList.add("active");
+        tabEl.style.setProperty("display", "block", "important");
+    }
+
+    console.log("🛠️ Vkládám HTML šablonu pexesa do čistého containeru...");
+
+    // 3. VLOŽENÍ ŠABLONY DO VYČIŠTĚNÉHO CONTAINERU
     container.innerHTML = `
-        <div class="pexeso-manager-panel" style="background: #020617; padding: 25px; border-radius: 16px; border: 1px solid #1e293b; color: #fff; font-family: sans-serif;">
+        <div class="pexeso-manager-panel" style="display: grid !important; visibility: visible !important; opacity: 1 !important; background: #020617; padding: 25px; border-radius: 16px; border: 1px solid #1e293b; color: #fff; font-family: sans-serif; grid-template-columns: 1.35fr 1.65fr; gap: 25px; width: 100% !important; box-sizing: border-box;">
             
-            <div style="background: #0f172a; padding: 20px; border-radius: 12px; border: 1px solid #1e293b; margin-bottom: 25px;">
-                <h3 style="margin: 0 0 5px 0; color: #38bdf8; font-size: 1.1rem;">Nastavení turnaje</h3>
-                <p style="margin: 0 0 15px 0; font-size: 0.8rem; color: #94a3b8;">Ovlivňuje chování hry na mobilech diváků.</p>
+            <div style="display: flex; flex-direction: column; gap: 20px;">
                 
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; font-size: 0.95rem;">
-                    <input type="checkbox" id="chkRequireEmail" style="width: 18px; height: 18px; cursor: pointer;">
-                    Vyžadovat e-mail před spuštěním hry
-                </label>
+                <div style="background: #0f172a; padding: 20px; border-radius: 12px; border: 1px solid #1e293b;">
+                    <h3 style="margin: 0 0 5px 0; color: #34d399; font-size: 1.1rem;">🎨 Globální pozadí a tvary</h3>
+                    <p style="margin: 0 0 15px 0; font-size: 0.8rem; color: #94a3b8;">Základní barvy herního rozhraní a správa celoplošné tapety.</p>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label style="display:block; font-size:0.7rem; color:#94a3b8; margin-bottom:4px;">Pozadí hry (Background):</label>
+                                <div style="display:flex; align-items:center; gap:5px;">
+                                    <input type="color" id="colBgColor" style="width:28px; height:28px; border:none; background:none; cursor:pointer;">
+                                    <input type="text" id="txtBgColor" style="width:100%; background:#020617; border:1px solid #334155; border-radius:4px; padding:4px; color:#fff; font-size:0.75rem;">
+                                </div>
+                            </div>
+                            <div>
+                                <label style="display:block; font-size:0.7rem; color:#94a3b8; margin-bottom:4px;">Boxík formuláře (Card):</label>
+                                <div style="display:flex; align-items:center; gap:5px;">
+                                    <input type="color" id="colFormColor" style="width:28px; height:28px; border:none; background:none; cursor:pointer;">
+                                    <input type="text" id="txtFormColor" style="width:100%; background:#020617; border:1px solid #334155; border-radius:4px; padding:4px; color:#fff; font-size:0.75rem;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="border-top:1px solid #1e293b; padding-top:10px; display:flex; align-items:center; gap:12px;">
+                            <div style="width: 50px; height: 65px; background: #020617; border: 1px dashed #334155; border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+                                <img id="prev-bg-image" src="" style="width:100%; height:100%; object-fit:cover; display:none;">
+                                <span id="label-bg-image" style="font-size:1rem;">🖼️</span>
+                            </div>
+                            <div style="flex-grow:1;">
+                                <span style="font-size:0.75rem; color:#94a3b8; display:block; margin-bottom:4px;">Celoplošný obrázek na pozadí (Vertikální)</span>
+                                <div style="display:flex; gap:6px;">
+                                    <input type="file" id="file-bg-image" accept="image/*" style="display:none;">
+                                    <button onclick="document.getElementById('file-bg-image').click()" id="btnBgImageUpload" style="background:#1e293b; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:0.75rem; cursor:pointer; font-weight:600;">Nahrát obrázek</button>
+                                    <button id="btnDeleteBgImage" style="background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.2); padding:6px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer;">🗑️ Smazat</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: #0f172a; padding: 20px; border-radius: 12px; border: 1px solid #1e293b;">
+                    <h3 style="margin: 0 0 5px 0; color: #38bdf8; font-size: 1.1rem;">📋 Obsah, lokalizace a barvy textů</h3>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 14px;">
+                        <div style="background:rgba(0,0,0,0.15); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.03);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                <label style="font-size: 0.75rem; color: #94a3b8; font-weight:700;">Hlavní nadpis v mobilu:</label>
+                                <input type="color" id="colColorIntroTitle" style="width:22px; height:22px; border:none; background:none; cursor:pointer;">
+                            </div>
+                            <input type="text" id="txtIntroTitle" placeholder="🧩 Digitální Pexeso" style="width: 100%; background: #020617; border: 1px solid #334155; border-radius: 6px; padding: 8px; color: #fff; font-size: 0.85rem; box-sizing: border-box;">
+                        </div>
+
+                        <div style="background:rgba(0,0,0,0.15); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.03);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                <label style="font-size: 0.75rem; color: #94a3b8; font-weight:700;">Podnadpis / Instrukce:</label>
+                                <input type="color" id="colColorIntroSubtitle" style="width:22px; height:22px; border:none; background:none; cursor:pointer;">
+                            </div>
+                            <input type="text" id="txtIntroSubtitle" placeholder="Srovnej všech 10 dvojic v co nejkratším čase!" style="width: 100%; background: #020617; border: 1px solid #334155; border-radius: 6px; padding: 8px; color: #fff; font-size: 0.85rem; box-sizing: border-box;">
+                        </div>
+
+                        <div style="background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                <span style="font-size:0.75rem; font-weight:700; color:#fff;">👤 Uživatelské jméno (Povinné)</span>
+                                <input type="color" id="colColorLabelUser" style="width:22px; height:22px; border:none; background:none; cursor:pointer;">
+                            </div>
+                            <input type="text" id="txtLabelUser" placeholder="Tvoje přezdívka *" style="width: 100%; background: #020617; border: 1px solid #334155; border-radius: 6px; padding: 7px; color: #fff; font-size: 0.8rem;">
+                        </div>
+
+                        <div style="background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; font-weight:700;"><input type="checkbox" id="chkRequireEmail"> Vyžadovat E-mail</label>
+                                <input type="color" id="colColorLabelEmail" style="width:22px; height:22px; border:none; background:none; cursor:pointer;">
+                            </div>
+                            <input type="text" id="txtLabelEmail" placeholder="Tvůj E-mail *" style="width: 100%; background: #020617; border: 1px solid #334155; border-radius: 6px; padding: 7px; color: #fff; font-size: 0.8rem;">
+                        </div>
+
+                        <div style="background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; font-weight:700;"><input type="checkbox" id="chkRequirePhone"> Vyžadovat Telefon</label>
+                                <input type="color" id="colColorLabelPhone" style="width:22px; height:22px; border:none; background:none; cursor:pointer;">
+                            </div>
+                            <input type="text" id="txtLabelPhone" placeholder="Telefonní číslo *" style="width: 100%; background: #020617; border: 1px solid #334155; border-radius: 6px; padding: 7px; color: #fff; font-size: 0.8rem;">
+                        </div>
+
+                        <div style="background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; font-weight:700;"><input type="checkbox" id="chkRequireSeat"> Vyžadovat Místo k sezení</label>
+                                <input type="color" id="colColorSeatLabels" style="width:22px; height:22px; border:none; background:none; cursor:pointer;">
+                            </div>
+                            <div id="seatPreviewBox" style="display: none; gap: 6px; margin-top:5px;">
+                                <input type="text" id="txtSeatLabel1" placeholder="Sektor" style="width:33%; background:#020617; border:1px solid #334155; padding:6px; font-size:0.75rem; color:#fff; border-radius:4px; text-align:center;">
+                                <input type="text" id="txtSeatLabel2" placeholder="Řada" style="width:33%; background:#020617; border:1px solid #334155; padding:6px; font-size:0.75rem; color:#fff; border-radius:4px; text-align:center;">
+                                <input type="text" id="txtSeatLabel3" placeholder="Místo" style="width:33%; background:#020617; border:1px solid #334155; padding:6px; font-size:0.75rem; color:#fff; border-radius:4px; text-align:center;">
+                            </div>
+                        </div>
+
+                        <div style="background:rgba(0,0,0,0.15); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.03);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                <label style="font-size: 0.75rem; color: #94a3b8; font-weight:700;">Text na startovním tlačítku:</label>
+                                <div style="display:flex; gap:6px; align-items:center;">
+                                    <span style="font-size:0.6rem; color:#64748b;">Pozadí:</span>
+                                    <input type="color" id="colColorBtnStartBg" style="width:20px; height:20px; border:none; background:none; cursor:pointer;">
+                                    <span style="font-size:0.6rem; color:#64748b;">Text:</span>
+                                    <input type="color" id="colColorBtnStartText" style="width:20px; height:20px; border:none; background:none; cursor:pointer;">
+                                </div>
+                            </div>
+                            <input type="text" id="txtBtnStartText" placeholder="Spustit hru 🚀" style="width: 100%; background: #020617; border: 1px solid #334155; border-radius: 6px; padding: 8px; color: #fff; font-size: 0.85rem; box-sizing: border-box;">
+                        </div>
+
+                        <div style="background:rgba(0,0,0,0.15); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.03);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                <label style="font-size: 0.75rem; color: #fbbf24; font-weight:700;">🏁 Text na závěrečné obrazovce:</label>
+                                <input type="color" id="colColorOutroText" style="width:22px; height:22px; border:none; background:none; cursor:pointer;">
+                            </div>
+                            <textarea id="txtOutroText" rows="2" style="width: 100%; background: #020617; border: 1px solid #334155; border-radius: 6px; padding: 8px; color: #fff; font-size: 0.8rem; resize: none; box-sizing: border-box; font-family:sans-serif;"></textarea>
+                        </div>
+
+                        <div style="background:rgba(0,0,0,0.15); padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.03);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                <label style="display:flex; align-items:center; gap:8px; font-size:0.75rem; color:#a78bfa; font-weight:700; cursor:pointer;">
+                                    <input type="checkbox" id="chkRequireGdpr" style="width:16px; height:16px; cursor:pointer;">
+                                    ⚖️ Aktivovat GDPR souhlas na mobilu
+                                </label>
+                                <input type="color" id="colColorGdprText" style="width:22px; height:22px; border:none; background:none; cursor:pointer;">
+                            </div>
+                            <textarea id="txtGdprText" rows="2" style="width: 100%; background: #020617; border: 1px solid #334155; border-radius: 6px; padding: 8px; color: #fff; font-size: 0.8rem; resize: none; box-sizing: border-box; font-family:sans-serif;"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: #0f172a; padding: 20px; border-radius: 12px; border: 1px solid #1e293b;">
+                    <h3 style="margin: 0 0 5px 0; color: #ec4899; font-size: 1.1rem;">📢 Branding & Partner hry</h3>
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; background: #020617; padding: 10px; border-radius: 8px; border: 1px solid #1e293b;">
+                        <div style="width: 70px; height: 70px; background: #090d16; border: 1px dashed #334155; border-radius: 6px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+                            <img id="prev-partner-logo" src="" style="width: 100%; height: 100%; object-fit: contain; display: none;">
+                            <span id="label-partner-logo" style="font-size: 1.5rem;">🏢</span>
+                        </div>
+                        <div style="flex-grow: 1;">
+                            <span style="font-size: 0.75rem; color: #94a3b8; display: block; margin-bottom: 5px;">Logo partnera</span>
+                            <div style="display:flex; gap:6px;">
+                                <input type="file" id="file-partner-logo" accept="image/*" style="display: none;">
+                                <button onclick="document.getElementById('file-partner-logo').click()" id="btnPartnerLogoUpload" style="background: #1e293b; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600;">Vybrat logo</button>
+                                <button id="btnDeletePartnerLogo" style="background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.2); padding:6px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer;">🗑️ Smazat</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">Sdělení partnera:</label>
+                            <textarea id="txtPartnerMessage" rows="2" style="width: 100%; background: #020617; border: 1px solid #1e293b; border-radius: 6px; padding: 8px; color: #fff; font-size: 0.85rem; resize: none; box-sizing: border-box; font-family:sans-serif;"></textarea>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">🔗 Proklikový odkaz partnera (URL):</label>
+                            <input type="url" id="txtPartnerUrl" placeholder="https://www.sponzor.cz/akce" style="width: 100%; background: #020617; border: 1px solid #1e293b; border-radius: 6px; padding: 8px; color: #fff; font-size: 0.85rem; box-sizing: border-box;">
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
-            <div style="background: #0f172a; padding: 20px; border-radius: 12px; border: 1px solid #1e293b;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #1e293b; padding-bottom: 10px;">
-                    <h3 style="margin: 0; font-size: 1.1rem; color: #a78bfa;">🏆 Průběžný žebříček turnaje (TOP 20)</h3>
-                    <span style="font-size: 0.75rem; background: #1e293b; padding: 4px 10px; border-radius: 20px; color: #94a3b8; font-weight: 600;">Real-time synchronizace</span>
-                </div>
-                
+            <div style="background: #0f172a; padding: 20px; border-radius: 12px; border: 1px solid #1e293b; height: fit-content; position: sticky; top: 10px;">
+                <h3 style="margin: 0 0 15px 0; border-bottom: 1px solid #1e293b; padding-bottom: 10px; color:#a78bfa; font-size: 1.1rem;">🏆 Průběžný žebříček turnaje (TOP 20)</h3>
                 <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
                         <thead>
-                            <tr style="border-bottom: 2px solid #1e293b; color: #94a3b8; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px;">
-                                <th style="padding: 10px;">Pořadí</th>
-                                <th style="padding: 10px;">Přezdívka</th>
-                                <th style="padding: 10px;">E-mail</th>
-                                <th style="padding: 10px; text-align: right;">Výsledný čas</th>
+                            <tr style="border-bottom: 2px solid #1e293b; color: #94a3b8; font-weight: 700; text-transform: uppercase; font-size: 0.7rem;">
+                                <th style="padding: 10px 5px;">Pořadí</th>
+                                <th style="padding: 10px;">Hráč / Kontakt</th>
+                                <th style="padding: 10px; text-align: right;">Čas</th>
                                 <th style="padding: 10px; text-align: right;">Otočení</th>
-                                <th style="padding: 10px; text-align: center;">Akce</th>
                             </tr>
                         </thead>
                         <tbody id="pexesoLeaderboardRows">
-                            <tr><td colspan="6" style="padding: 20px; text-align: center; color: #64748b;">Načítám výsledky z databáze...</td></tr>
+                            <tr><td colspan="4" style="padding: 20px; text-align: center; color: #64748b;">Načítám výsledky z databáze...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -938,87 +1095,168 @@ window.openPexesoControl = async function(eventId, eventTitle) {
         </div>
     `;
 
-    // Přepnutí záložky
-    document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
-    document.getElementById("moderation-tab").classList.add("active");
+    // 4. LINKOVÁNÍ ELEMENTŮ Z DOMU
+    const txtIntroTitle = document.getElementById("txtIntroTitle"); const colColorIntroTitle = document.getElementById("colColorIntroTitle");
+    const txtIntroSubtitle = document.getElementById("txtIntroSubtitle"); const colColorIntroSubtitle = document.getElementById("colColorIntroSubtitle");
+    const txtOutroText = document.getElementById("txtOutroText"); const colColorOutroText = document.getElementById("colColorOutroText");
+    const txtBtnStartText = document.getElementById("txtBtnStartText");
+    const colColorBtnStartBg = document.getElementById("colColorBtnStartBg"); const colColorBtnStartText = document.getElementById("colColorBtnStartText");
+    const chkEmail = document.getElementById("chkRequireEmail"); const chkPhone = document.getElementById("chkRequirePhone"); const chkSeat = document.getElementById("chkRequireSeat");
+    const chkRequireGdpr = document.getElementById("chkRequireGdpr"); const seatPreview = document.getElementById("seatPreviewBox");
+    const labelUser = document.getElementById("txtLabelUser"); const colColorLabelUser = document.getElementById("colColorLabelUser");
+    const labelEmail = document.getElementById("txtLabelEmail"); const colColorLabelEmail = document.getElementById("colColorLabelEmail");
+    const labelPhone = document.getElementById("txtLabelPhone"); const colColorLabelPhone = document.getElementById("colColorLabelPhone");
+    const labelSeat1 = document.getElementById("txtSeatLabel1"); const labelSeat2 = document.getElementById("txtSeatLabel2"); const labelSeat3 = document.getElementById("txtSeatLabel3");
+    const colColorSeatLabels = document.getElementById("colColorSeatLabels");
+    const txtGdpr = document.getElementById("txtGdprText"); const colColorGdprText = document.getElementById("colColorGdprText");
+    const colBg = document.getElementById("colBgColor"); const colForm = document.getElementById("colFormColor");
+    const fileBgImage = document.getElementById("file-bg-image"); const prevBgImage = document.getElementById("prev-bg-image"); const labelBgImage = document.getElementById("label-bg-image");
+    const btnDeleteBgImage = document.getElementById("btnDeleteBgImage");
+    const txtMessage = document.getElementById("txtPartnerMessage"); const txtUrl = document.getElementById("txtPartnerUrl");
+    const fileLogo = document.getElementById("file-partner-logo"); const prevLogo = document.getElementById("prev-partner-logo"); const labelLogo = document.getElementById("label-partner-logo");
+    const btnDeletePartnerLogo = document.getElementById("btnDeletePartnerLogo");
 
-    // Načtení stavu checkboxu z Firebase
-    const checkbox = document.getElementById("chkRequireEmail");
-    try {
-        const { getDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-        const eventSnap = await getDoc(doc(db, "events", eventId));
-        if (eventSnap.exists()) {
-            const eventData = eventSnap.data();
-            if (eventData.pexesoSettings && checkbox) {
-                checkbox.checked = eventData.pexesoSettings.requireEmail === true;
+    // Helper funkce pro ukládání barev z palet
+    const bindColor = (colorEl, firestoreKey) => {
+        if (colorEl) colorEl.addEventListener("input", (e) => saveSettingsField(firestoreKey, e.target.value));
+    };
+
+    console.log("⏳ Stahuji data turnaje z Firebase Firestore...");
+
+    // NAČTENÍ DAT
+    if (_getDoc && _doc && firestoreInstance) {
+        _getDoc(_doc(firestoreInstance, "events", eventId)).then(eventSnap => {
+            if (eventSnap.exists() && eventSnap.data().pexesoSettings) {
+                const s = eventSnap.data().pexesoSettings;
+                if (txtIntroTitle) txtIntroTitle.value = s.introTitle || "🧩 Digitální Pexeso";
+                if (colColorIntroTitle) colColorIntroTitle.value = s.colorIntroTitle || "#ffffff";
+                if (txtIntroSubtitle) txtIntroSubtitle.value = s.introSubtitle || "Srovnej všech 10 dvojic v co nejkratším čase!";
+                if (colColorIntroSubtitle) colColorIntroSubtitle.value = s.colorIntroSubtitle || "#94a3b8";
+                if (txtOutroText) txtOutroText.value = s.outroText || "Koukni se na velkou LED stěnu v hale, zda jsi v TOP 20!";
+                if (colColorOutroText) colColorOutroText.value = s.colorOutroText || "#e2e8f0";
+                if (txtBtnStartText) txtBtnStartText.value = s.btnStartText || "Spustit hru 🚀";
+                if (colColorBtnStartBg) colColorBtnStartBg.value = s.colorBtnStartBg || "#38bdf8";
+                if (colColorBtnStartText) colColorBtnStartText.value = s.colorBtnStartText || "#ffffff";
+                if (chkEmail) chkEmail.checked = s.requireEmail === true;
+                if (chkPhone) chkPhone.checked = s.requirePhone === true;
+                if (chkSeat) { chkSeat.checked = s.requireSeat === true; if (seatPreview) seatPreview.style.display = s.requireSeat === true ? "flex" : "none"; }
+                if (chkRequireGdpr) chkRequireGdpr.checked = s.requireGdpr === true;
+                if (labelUser) labelUser.value = s.labelUser || "Tvoje přezdívka *";
+                if (colColorLabelUser) colColorLabelUser.value = s.colorLabelUser || "#ffffff";
+                if (labelEmail) labelEmail.value = s.labelEmail || "Tvůj E-mail *";
+                if (colColorLabelEmail) colColorLabelEmail.value = s.colorLabelEmail || "#ffffff";
+                if (labelPhone) labelPhone.value = s.labelPhone || "Telefonní číslo *";
+                if (colColorLabelPhone) colColorLabelPhone.value = s.colorLabelPhone || "#ffffff";
+                if (labelSeat1) labelSeat1.value = s.seatLabel1 || "Sektor";
+                if (labelSeat2) labelSeat2.value = s.seatLabel2 || "Řada";
+                if (labelSeat3) labelSeat3.value = s.seatLabel3 || "Místo";
+                if (colColorSeatLabels) colColorSeatLabels.value = s.colorSeatLabels || "#ffffff";
+                if (txtGdpr) txtGdpr.value = s.gdprText || "";
+                if (colColorGdprText) colColorGdprText.value = s.colorGdprText || "#38bdf8";
+                if (txtMessage) txtMessage.value = s.partnerMessage || "";
+                if (txtUrl) txtUrl.value = s.partnerUrl || "";
+                if (colBg) colBg.value = s.colorBg || "#020617";
+                if (colForm) colForm.value = s.colorForm || "#0f172a";
+                if (s.partnerLogoUrl && prevLogo && labelLogo) { prevLogo.src = s.partnerLogoUrl; prevLogo.style.display = "block"; labelLogo.style.display = "none"; }
+                if (s.bgImageUrl && prevBgImage && labelBgImage) { prevBgImage.src = s.bgImageUrl; prevBgImage.style.display = "block"; labelBgImage.style.display = "none"; }
             }
-        }
-    } catch (e) { console.error(e); }
+        }).catch(err => console.error(err));
+    }
 
-    if (checkbox) {
-        checkbox.addEventListener("change", async (e) => {
-            const { updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-            await updateDoc(doc(db, "events", eventId), {
-                "pexesoSettings.requireEmail": e.target.checked
+    const saveSettingsField = (key, value) => {
+        if (_updateDoc && _doc && firestoreInstance) {
+            _updateDoc(_doc(firestoreInstance, "events", eventId), { [`pexesoSettings.${key}`]: value }).catch(e => console.error(e));
+        }
+    };
+
+    // Autosave listeners
+    if (chkEmail) chkEmail.addEventListener("change", (e) => saveSettingsField("requireEmail", e.target.checked));
+    if (chkPhone) chkPhone.addEventListener("change", (e) => saveSettingsField("requirePhone", e.target.checked));
+    if (chkSeat) { chkSeat.addEventListener("change", (e) => { if (seatPreview) seatPreview.style.display = e.target.checked ? "flex" : "none"; saveSettingsField("requireSeat", e.target.checked); }); }
+    if (chkRequireGdpr) chkRequireGdpr.addEventListener("change", (e) => saveSettingsField("requireGdpr", e.target.checked));
+
+    // Aktivace barevných palet
+    bindColor(colBg, "colorBg"); bindColor(colForm, "colorForm");
+    bindColor(colColorIntroTitle, "colorIntroTitle"); bindColor(colColorIntroSubtitle, "colorIntroSubtitle");
+    bindColor(colColorLabelUser, "colorLabelUser"); bindColor(colColorLabelEmail, "colorLabelEmail");
+    bindColor(colColorLabelPhone, "colorLabelPhone"); bindColor(colColorSeatLabels, "colorSeatLabels");
+    bindColor(colColorOutroText, "colorOutroText"); bindColor(colColorGdprText, "colorGdprText");
+    bindColor(colColorBtnStartBg, "colorBtnStartBg"); bindColor(colColorBtnStartText, "colorBtnStartText");
+
+    // Vyčištění a spuštění debounced autosave pro psaní textu
+    const handleTyping = (key, inputEl) => {
+        if (!inputEl) return;
+        clearTimeout(typingTimer); 
+        typingTimer = setTimeout(() => { 
+            saveSettingsField(key, inputEl.value.trim()); 
+        }, 400);
+    };
+
+    if (txtIntroTitle) txtIntroTitle.addEventListener("input", () => handleTyping("introTitle", txtIntroTitle));
+    if (txtIntroSubtitle) txtIntroSubtitle.addEventListener("input", () => handleTyping("introSubtitle", txtIntroSubtitle));
+    if (txtOutroText) txtOutroText.addEventListener("input", () => handleTyping("outroText", txtOutroText));
+    if (txtBtnStartText) txtBtnStartText.addEventListener("input", () => handleTyping("btnStartText", txtBtnStartText));
+    if (labelUser) labelUser.addEventListener("input", () => handleTyping("labelUser", labelUser));
+    if (labelEmail) labelEmail.addEventListener("input", () => handleTyping("labelEmail", labelEmail));
+    if (labelPhone) labelPhone.addEventListener("input", () => handleTyping("labelPhone", labelPhone));
+    if (labelSeat1) labelSeat1.addEventListener("input", () => handleTyping("seatLabel1", labelSeat1));
+    if (labelSeat2) labelSeat2.addEventListener("input", () => handleTyping("seatLabel2", labelSeat2));
+    if (labelSeat3) labelSeat3.addEventListener("input", () => handleTyping("seatLabel3", labelSeat3));
+    if (txtGdpr) txtGdpr.addEventListener("input", () => handleTyping("gdprText", txtGdpr));
+    if (txtMessage) txtMessage.addEventListener("input", () => handleTyping("partnerMessage", txtMessage));
+    if (txtUrl) txtUrl.addEventListener("input", () => handleTyping("partnerUrl", txtUrl));
+
+    if (btnDeleteBgImage) btnDeleteBgImage.addEventListener("click", () => { if (confirm("Smazat pozadí?")) { if (prevBgImage) prevBgImage.style.display = "none"; saveSettingsField("bgImageUrl", ""); } });
+    if (btnDeletePartnerLogo) btnDeletePartnerLogo.addEventListener("click", () => { if (confirm("Smazat logo partnera?")) { if (prevLogo) prevLogo.style.display = "none"; saveSettingsField("partnerLogoUrl", ""); } });
+
+    // Nahrávání souborů
+    const handleFileUpload = (fileInput, prevEl, labelEl, btnEl, storagePath, settingsKey) => {
+        if (!fileInput || !_uploadBytes || !_getDownloadURL || !_ref || !storageInstance) return;
+        fileInput.addEventListener("change", (e) => {
+            if (!e.target.files || !e.target.files[0]) return;
+            const file = e.target.files[0];
+            if (btnEl) { btnEl.textContent = "⏳..."; btnEl.disabled = true; }
+            if (prevEl && labelEl) { prevEl.src = URL.createObjectURL(file); prevEl.style.display = "block"; labelEl.style.display = "none"; }
+
+            const ext = file.name.split('.').pop();
+            _uploadBytes(_ref(storageInstance, `pexeso/${eventId}/${storagePath}_${Date.now()}.${ext}`), file).then(snap => {
+                return _getDownloadURL(snap.ref);
+            }).then(downloadUrl => {
+                saveSettingsField(settingsKey, downloadUrl);
+                if (btnEl) { btnEl.textContent = "✓ Uloženo"; setTimeout(() => { btnEl.textContent = "Nahrát"; btnEl.disabled = false; }, 2000); }
+            }).catch(err => console.error(err));
+        });
+    };
+    handleFileUpload(fileLogo, prevLogo, labelLogo, document.getElementById("btnPartnerLogoUpload"), "partner", "partnerLogoUrl");
+    handleFileUpload(fileBgImage, prevBgImage, labelBgImage, document.getElementById("btnBgImageUpload"), "screen_bg", "bgImageUrl");
+
+    if (_onSnapshot && _query && _collection && _orderBy && firestoreInstance) {
+        if (window.unsubscribePexesoLeaderboard) window.unsubscribePexesoLeaderboard();
+        const leaderboardQuery = _query(_collection(firestoreInstance, "events", eventId, "pexeso_leaderboard"), _orderBy("time", "asc"));
+        window.unsubscribePexesoLeaderboard = _onSnapshot(leaderboardQuery, (snapshot) => {
+            const tbody = document.getElementById("pexesoLeaderboardRows"); if (!tbody) return;
+            tbody.innerHTML = ""; let position = 0;
+            if (snapshot.empty) { tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #64748b; padding: 20px;">Žádné výsledky.</td></tr>`; return; }
+            snapshot.forEach((docSnap) => {
+                position++; if (position > 20) return;
+                const score = docSnap.data(); const tr = document.createElement("tr"); tr.style.borderBottom = "1px solid #1e293b";
+                let medal = position <= 3 ? ["🥇 1.", "🥈 2.", "🥉 3."][position-1] : `${position}.`;
+                let contactStr = [score.email, score.phone].filter(Boolean).join(" | ") || "Bez kontaktu";
+                let seatStr = (score.sector || score.row || score.seat) ? `<div style="margin-top: 3px; font-size: 0.75rem; color: #a78bfa; font-weight: 600;">💺 Sedadlo: ${score.sector||'?'}, ${score.row||'?'}, ${score.seat||'?'}</div>` : "";
+                tr.innerHTML = `
+                    <td style="padding: 12px 5px; font-weight: 700; color: ${position <= 3 ? '#ec4899' : '#94a3b8'}; text-align: center;">${medal}</td>
+                    <td style="padding: 12px;"><div style="font-weight: 600; color: #fff; font-size:0.95rem;">${score.user}</div><div style="font-size: 0.75rem; color: #64748b; margin-top:2px;">${contactStr}</div>${seatStr}</td>
+                    <td style="padding: 12px; font-weight: 700; color: #38bdf8; font-family: monospace; font-size: 0.95rem; text-align: right;">${score.time.toFixed(2)}s</td>
+                    <td style="padding: 12px; color: #94a3b8; text-align: right; font-family: monospace;">${score.clicks || "---"}x</td>
+                `;
+                tbody.appendChild(tr);
             });
         });
     }
-
-    // LIVE SLEDOVÁNÍ TURNAJE
-    if (window.unsubscribePexesoLeaderboard) window.unsubscribePexesoLeaderboard();
-
-    const { query, collection, orderBy, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-    const leaderboardQuery = query(collection(db, "events", eventId, "pexeso_leaderboard"), orderBy("time", "asc"));
-
-    window.unsubscribePexesoLeaderboard = onSnapshot(leaderboardQuery, (snapshot) => {
-        const tbody = document.getElementById("pexesoLeaderboardRows");
-        if (!tbody) return;
-
-        tbody.innerHTML = "";
-        let position = 0;
-
-        if (snapshot.empty) {
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 30px; font-style: italic;">Zatím nikdo nedokončil hru. Buďte první!</td></tr>`;
-            return;
-        }
-
-        snapshot.forEach((docSnap) => {
-            position++;
-            if (position > 20) return;
-
-            const score = docSnap.data();
-            const tr = document.createElement("tr");
-            tr.style.borderBottom = "1px solid #1e293b";
-            tr.style.background = position <= 3 ? "rgba(236, 72, 153, 0.03)" : "transparent";
-
-            let medal = `${position}.`;
-            if (position === 1) medal = "🥇 1.";
-            if (position === 2) medal = "🥈 2.";
-            if (position === 3) medal = "🥉 3.";
-
-            tr.innerHTML = `
-                <td style="padding: 12px; font-weight: 700; color: ${position <= 3 ? '#ec4899' : '#94a3b8'};">${medal}</td>
-                <td style="padding: 12px; font-weight: 600; color: #fff;">${score.user}</td>
-                <td style="padding: 12px; color: #64748b;">${score.email || "---"}</td>
-                <td style="padding: 12px; font-weight: 700; color: #38bdf8; font-family: monospace; font-size: 0.95rem; text-align: right;">${score.time.toFixed(2)}s</td>
-                <td style="padding: 12px; color: #94a3b8; text-align: right;">${score.clicks || "---"}x</td>
-                <td style="padding: 12px; text-align: center;">
-                    <button onclick="window.deletePexesoScore('${eventId}', '${docSnap.id}')" style="background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 1rem; padding: 2px 8px;" title="Smazat výsledek">🗑️</button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-    });
+    console.log("🏁 HARD-ZÁVĚR: Panel pexesa byl kompletně vynucen a žebříček spuštěn.");
 };
 
-window.deletePexesoScore = async function(eventId, scoreId) {
-    if (confirm("Chcete tento výsledek trvale smazat ze žebříčku?")) {
-        try {
-            const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-            await deleteDoc(doc(db, "events", eventId, "pexeso_leaderboard", scoreId));
-        } catch (e) { console.error(e); }
-    }
-};
+
 
 // =========================================================================
 // 🃏 PEXESO: SPRÁVA BALÍČKU KARET (RUB A 10 DVOJIC)
